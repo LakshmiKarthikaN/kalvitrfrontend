@@ -22,12 +22,12 @@ const LoginPage = ({ onSwitch }) => {
   };
 
   return (
-    <AuthLayout>
-      <div className="w-full max-w-sm">
-        <h2 className="text-emerald-500 text-2xl font-semibold mb-6">Login</h2>
+    <AuthLayout variant ="login">
+      <div className="">
+        <h2 className="text-[#38B698] text-2xl text-center font-semibold mb-6">Login</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <InputField
+          <InputField 
             type="email"
             name="email"
             placeholder="Email"
@@ -64,6 +64,8 @@ const LoginPage = ({ onSwitch }) => {
             <Button 
               variant="link"
               onClick={() => onSwitch('register')}
+              className="!inline !p-0 !m-0 !w-auto align-baseline text-[#38B698] hover:underline"
+
             >
               Register here
             </Button>

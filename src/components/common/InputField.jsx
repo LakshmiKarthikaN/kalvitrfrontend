@@ -17,15 +17,18 @@ const InputField = ({
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      <input
-        type={type}
-        name={name}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        required={required}
-        className={`w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200 ${className}`}
-      />
+      <div className="flex justify-center">
+  <input
+    type={type}
+    name={name}
+    placeholder={placeholder}
+    value={value}
+    onChange={onChange}
+    required={required}
+    className={`w-60 px-2 py-2 border border-gray-300 rounded-2xl focus:outline-none placeholder-gray-500 placeholder:text-xs transition duration-200 ${className}`}
+  />
+</div>
+
     </div>
   );
 };

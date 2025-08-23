@@ -35,9 +35,9 @@ const RegistrationPage = ({ onSwitch }) => {
   };
 
   return (
-    <AuthLayout>
-      <div className="w-full max-w-sm">
-        <h2 className="text-emerald-500 text-2xl font-semibold mb-6">Registration</h2>
+    <AuthLayout variant="register">
+      <div className="w-ful max-w-sm">
+        <h2 className="text-[#38B698] text-2xl text-center font-semibold mb-6">Registration</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField
@@ -47,7 +47,7 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.name}
             onChange={handleInputChange}
             required
-          />
+            className="py-0 px-2 w-70 text-sm"              />
           
           <InputField
             type="email"
@@ -56,6 +56,7 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.email}
             onChange={handleInputChange}
             required
+            className=" py-1 px-2 w-70 text-sm" 
           />
           
           <InputField
@@ -65,6 +66,7 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.password}
             onChange={handleInputChange}
             required
+            className=" py-1 px-2 w-70 text-sm" 
           />
           
           <InputField
@@ -74,6 +76,7 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.confirmPassword}
             onChange={handleInputChange}
             required
+            className=" py-1 px-2 w-70 text-sm" 
           />
           
           <InputField
@@ -83,6 +86,7 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.mobile}
             onChange={handleInputChange}
             required
+            className=" py-1 px-2 w-70 text-sm" 
           />
           
           <InputField
@@ -92,6 +96,7 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.college}
             onChange={handleInputChange}
             required
+            className=" py-1 px-2 w-70 text-sm" 
           />
           
           <InputField
@@ -101,17 +106,35 @@ const RegistrationPage = ({ onSwitch }) => {
             value={formData.graduationYear}
             onChange={handleInputChange}
             required
+            className=" py-1 px-2 w-70 text-sm" 
           />
-          
-          <div>
-            <label className="block text-gray-700 text-sm mb-2">Upload your Resume</label>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleFileChange}
-              className="w-full p-3 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50"
-            />
-          </div>
+          <label className="block text-gray-700 text-sm mb-2">
+    Upload your Resume
+  </label>
+  
+
+  {/* Hidden file input */}
+  <input
+    type="file"
+    id="resume-upload"
+    accept=".pdf,.doc,.docx"
+    onChange={handleFileChange}
+    className="hidden "
+  />
+
+  {/* Custom label acting as button */}
+  <label
+  htmlFor="resume-upload"
+  className="cursor-pointer w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md text-center hover:bg-gray-50"
+  >
+  <span className='text-gray-500'>Browse</span>
+</label>
+
+  {/* Info text below */}
+  <p className="text-xs text-gray-500 mt-2">
+    Only PDF, DOC, DOCX allowed.
+  </p>
+
           
           <Button type="submit">
             Register
@@ -122,8 +145,10 @@ const RegistrationPage = ({ onSwitch }) => {
             <Button 
               variant="link"
               onClick={() => onSwitch('login')}
+              className="!inline !p-0 !m-0 !w-auto align-baseline text-[#38B698] hover:underline"
+
             >
-              Login here
+              Login
             </Button>
           </div>
         </form>
