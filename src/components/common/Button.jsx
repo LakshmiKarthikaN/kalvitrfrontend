@@ -8,10 +8,11 @@ const Button = ({
   className = '',
   disabled = false 
 }) => {
-  const baseClasses = 'py-3 px-6 w-45 rounded-full transition duration-200 font-medium mx-auto block';
+  const baseClasses =
+    'py-3 px-6 rounded-full transition duration-200 font-medium inline-block';
 
   const variants = {
-    primary: 'text-white hover:opacity-90 focus:ring-2 ',
+    primary: 'text-white hover:opacity-90 focus:ring-2',
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
     link: 'bg-transparent text-emerald-500 hover:underline p-0'
   };

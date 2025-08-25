@@ -22,21 +22,23 @@ const ForgotPassword = ({ onSwitch }) => {
     onSwitch('reset');
   };
 
-  const illustration = (
 
+  const illustration = (
+    
 
     
     <img 
       src={ForgotIllustration} 
       alt="Illustration" 
-      className="max-w-[250px] max-h-[250px] object-contain mb-5"
-    />
+      className="w-32 h-32 sm:w-40 sm:h-40 md:w-60 md:h-60 object-contain mt-5 mx-auto mix-blend-multiply"
+      />
   
   );
   
   return (
     <AuthLayout variant="forgot" showIllustration={true} illustration={illustration}>
       <div className="w-full max-w-sm">
+      
         <h2 className="text-emerald-500 text-2xl text-center font-semibold mb-2">Forgot Password</h2>
         <p className="text-gray-600 text-sm mb-6">Please enter your registered mobile number to get OTP</p>
         
@@ -48,7 +50,7 @@ const ForgotPassword = ({ onSwitch }) => {
             value={formData.mobile}
             onChange={handleInputChange}
             required
-            className="py-1 px-2 w-70 text-sm" 
+            size="medium"
           />
           
           <InputField
@@ -58,20 +60,21 @@ const ForgotPassword = ({ onSwitch }) => {
             value={formData.otp}
             onChange={handleInputChange}
             required
-            className="py-1 px-2 w-70 text-sm" 
+            size="medium"
           />
           
           {/* Resend OTP + Timer aligned with input */}
-          <div className="flex justify-between w-full mt-1 px-15">
+          <div className="flex justify-between items-center max-w-[250px] mx-auto mt-2">
             <span className="text-black cursor-pointer underline text-[#38B698]">
               Resend OTP
             </span>
             <span className="text-gray-600">5:00</span>
           </div>
 
-          <Button type="submit">
-            Verify OTP
-          </Button>
+          <div className="text-center">
+  <Button type="submit">Verify OTP</Button>
+</div>
+
           
           <div className="text-center text-sm text-gray-600">
             Don't have an account?{' '}

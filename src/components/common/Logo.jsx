@@ -1,5 +1,5 @@
 import React from 'react';
-import LogoImg from "/home/lakshmikarthika/kalvitrack/src/assets/LogoImg.png";
+import LogoImg from "../../assets/LogoImg.png";
 
 const Logo = ({ size = 'large', variant = 'dark' }) => {
   const sizes = {
@@ -13,9 +13,7 @@ const Logo = ({ size = 'large', variant = 'dark' }) => {
       title: 'text-2xl',
       subtitle: 'text-sm'
     },
-    forre: {
-      image: 'w-15 h-15'
-    }
+  
   };
 
   const currentSize = sizes[size];
