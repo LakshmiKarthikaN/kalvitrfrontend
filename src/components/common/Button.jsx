@@ -1,35 +1,43 @@
-import React from 'react';
+// src/components/CustomButton.jsx
+import React from "react";
+import { Button } from "@mui/material";
 
-const Button = ({ 
-  children, 
-  onClick, 
-  type = 'button', 
-  variant = 'primary', 
-  className = '',
-  disabled = false 
+const CustomButton = ({
+  children,
+  onClick,
+  type = "button",
+  variant = "contained",
+  disabled = false,
 }) => {
-  const baseClasses =
-    'py-3 px-6 rounded-full transition duration-200 font-medium inline-block';
-
-  const variants = {
-    primary: 'text-white hover:opacity-90 focus:ring-2',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    link: 'bg-transparent text-emerald-500 hover:underline p-0'
-  };
-
   return (
-    <button
+    <Button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      style={variant === 'primary' ? { backgroundColor: '#38B698' } : {}}
-      className={`${baseClasses} ${variants[variant]} ${className} ${
-        disabled ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
+      variant={variant}
+      sx={{
+        backgroundColor: variant === "contained" ? "#38B698" : "transparent",
+        color: variant === "contained" ? "#fff" : "#38B698",
+        padding: "12px 24px",       // same as py-3 px-6
+        borderRadius: "9999px",     // fully rounded
+        fontWeight: "500",
+        textTransform: "none",      // keep text as-is (not uppercase)
+        transition: "all 0.2s",
+        "&:hover": {
+          opacity: 0.9,
+          backgroundColor: variant === "contained" ? "#38B698" : "transparent",
+          textDecoration: variant === "text" ? "underline" : "none",
+        },
+        "&:disabled": {
+          opacity: 0.5,
+          cursor: "not-allowed",
+          backgroundColor: variant === "contained" ? "#38B698" : "transparent",
+        },
+      }}
     >
       {children}
-    </button>
+    </Button>
   );
 };
 
-export default Button;
+export default CustomButton;

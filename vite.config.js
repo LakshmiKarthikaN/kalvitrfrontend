@@ -8,5 +8,5 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  base: '/KalviTrack/', // 👈 must match your repo name
+  // 👈 must match your repo name
 })

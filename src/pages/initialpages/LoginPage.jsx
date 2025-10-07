@@ -1,80 +1,151 @@
-import React, { useState } from 'react';
-import { Button, InputField } from '../../components/common';
-import { AuthLayout } from '../../components/layout';
+import React from "react";
+import { Formik, Form } from "formik";
+import { Button, InputField } from "../../components/common";
+import { AuthLayout } from "../../components/layout";
+import { loginSchema } from "../../utils/validatorslogic/Validators";
 
-const LoginPage = ({ onSwitch }) => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+import { loginApi } from "../../api/authApi"; 
+import { useNavigate } from "react-router-dom";
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Login data:', formData);
-  };
-
+const LoginPage = () => {
+  const navigate = useNavigate();
+  const [roleForUI, setRoleForUI] = React.useState(null);
+ 
   return (
     <AuthLayout variant="login">
-      <div className="w-full max-w-sm mx-auto">   {/* 👈 keeps form, button & text together */}
+      <div className="w-full max-w-sm mx-auto">
         <h2 className="text-[#38B698] text-2xl text-center font-semibold mb-6">
           Login
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <InputField 
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleInputChange}
-            required
-            size="medium"
-          />
+        <Formik
+          initialValues={{ email: "", password: "" }}
+          validationSchema={loginSchema}
+          onSubmit={async (values, { setSubmitting, setErrors }) => {
+            try {
+              console.log("🔄 Attempting login with:", values.email);
 
-          <InputField
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleInputChange}
-            required
-            size="medium"
-          />
+              const res = await loginApi(values);
+              console.log("✅ Login response:", res.data);
 
-          <div className="text-right">
-            <button 
-              type="button"
-              onClick={() => onSwitch('forgot')}
-              className="text-gray-600 text-sm hover:text-emerald-500"
-            >
-              Forgot password?
-            </button>
-          </div>
+              const { success, mustResetPassword, role, userId, email, token } =
+                res.data;
+                if (success) {
+                  if (mustResetPassword && (role === "HR" || role === "FACULTY" || role === "INTERVIEW_PANELIST")) {
+                    console.log("⚠️ HR, Faculty and Interview Panelist must reset password. Invitation sent.");
+                
+                    // Show message instead of redirect
+                    setErrors({
+                      email:
+                        "Your account requires a password reset. Please check your email for the reset link.",
+                    });
+                
+                    return; // ✅ Stay on login page
+                  }
 
-          {/* ✅ Button is inside card now */}
-          <div className="text-center">
-            <Button type="submit">Login</Button>
-          </div>
+                // ✅ Case 2: Normal login flow
+                localStorage.setItem("token", token);
+                localStorage.setItem("userRole", role);
+                localStorage.setItem("userId", userId);
+                localStorage.setItem("userEmail", email);
 
-          {/* ✅ Footer stays inside card */}
-          <div className="text-center text-sm text-gray-600">
-            Don&apos;t have an account?{' '}
-            <Button 
-              variant="link"
-              onClick={() => onSwitch('register')}
-              className="!inline !p-0 !m-0 !w-auto align-baseline text-[#38B698] hover:underline"
-            >
-              Register here
-            </Button>
-          </div>
-        </form>
+                const userRole = role.toUpperCase();
+                setRoleForUI(userRole);
+
+                console.log("Stored user data. Role:", userRole);
+
+                // Redirect based on role
+                switch (userRole) {
+                  case "ADMIN":
+                    navigate("/admin-dashboard");
+                    break;
+                  case "HR":
+                    navigate("/hr-dashboard");
+                    break;
+                  case "FACULTY":
+                    navigate("/interviewpaenlist-portal");
+                    break;
+                  case "ZSGS":
+                    navigate("/student-profile");
+                    break;
+                  case "PMIS":
+                    navigate("/student-availability");
+                    break;
+                    case "INTERVIEW_PANELIST":
+                      navigate("/interviewpaenlist-portal");
+                      break;
+                  default:
+                    setErrors({
+                      email: "Unknown role. Please contact admin.",
+                    });
+                }
+              } else {
+                setErrors({ email: res.data.message || "Login failed" });
+              }
+            } catch (err) {
+              console.error("Login error:", err);
+              if (err.response) {
+                setErrors({
+                  email:
+                    err.response.data?.message || "Invalid email or password",
+                });
+              } else if (err.request) {
+                setErrors({
+                  email: "Network error. Please check your connection.",
+                });
+              } else {
+                setErrors({ email: "Something went wrong. Please try again." });
+              }
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+        >
+          {({ isSubmitting }) => (
+            <Form className="space-y-4">
+              <InputField
+                name="email"
+                type="email"
+                size="medium"
+                placeholder="Enter your email"
+              />
+              <InputField
+                name="password"
+                type="password"
+                size="medium"
+                placeholder="Enter password"
+              />
+
+              <div className="text-right mr-17">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-gray-600 text-sm hover:text-emerald-500"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <div className="text-center">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </Button>
+              </div>
+
+              {/* Optional: Show register link always */}
+              <div className="text-center text-sm text-gray-600">
+                Don&apos;t have an account?{" "}
+                <Button
+                  variant="link"
+                  onClick={() => navigate("/register")}
+                  className="!inline !p-0 !m-0 !w-auto align-baseline text-[#38B698] hover:underline"
+                >
+                  Register here
+                </Button>
+              </div>
+            </Form>
+          )}
+        </Formik>
       </div>
     </AuthLayout>
   );
