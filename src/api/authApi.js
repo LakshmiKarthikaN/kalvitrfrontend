@@ -3,9 +3,9 @@ import axios from "axios";
 // Safe way to get environment variables
 let apiUrl;
 try {
-  apiUrl = import.meta.env?.VITE_API_URL || "http://localhost:8080/api";
+  apiUrl = import.meta.env?.VITE_API_URL || "http://KalviTrackWeb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 } catch (error) {
-  apiUrl = "http://localhost:8080/api";
+  apiUrl = "http://KalviTrackWeb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 }
 
 //console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
