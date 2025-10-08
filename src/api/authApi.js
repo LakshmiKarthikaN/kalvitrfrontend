@@ -3,9 +3,9 @@ import axios from "axios";
 
 let apiUrl;
 try {
-  apiUrl = import.meta.env?.VITE_API_URL || "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
+  apiUrl = import.meta.env?.VITE_API_URL || "https://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 } catch (error) {
-  apiUrl = "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
+  apiUrl = "https://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 }
 //console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
 
