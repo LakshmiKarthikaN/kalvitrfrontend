@@ -1,19 +1,18 @@
 import axios from "axios";
 
-// Safe way to get environment variables
+
 let apiUrl;
 try {
-  apiUrl = import.meta.env?.VITE_API_URL || "http://KalviTrackWeb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
+  apiUrl = import.meta.env?.VITE_API_URL || "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 } catch (error) {
-  apiUrl = "http://KalviTrackWeb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
+  apiUrl = "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 }
-
 //console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
 
 // Create Axios instance
 export const api = axios.create({
   baseURL: apiUrl,
-  timeout: 30000, // 30 seconds timeout
+  timeout: 10000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json'
   }
