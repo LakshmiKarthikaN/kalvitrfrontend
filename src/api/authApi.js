@@ -1,25 +1,21 @@
 import axios from "axios";
 
+
 let apiUrl;
 try {
   apiUrl = import.meta.env?.VITE_API_URL || "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 } catch (error) {
   apiUrl = "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api";
 }
-console.log("Env:", import.meta.env.VITE_API_URL);
-console.log("Should be: http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api");
+//console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
+
 // Create Axios instance
 export const api = axios.create({
   baseURL: apiUrl,
-  timeout: 30000, // ✅ Change back to 30 seconds
+  timeout: 10000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json'
   }
-});
-console.log("🔧 API Configuration:", {
-  apiUrl,
-  envValue: import.meta.env?.VITE_API_URL,
-  isProduction: import.meta.env.PROD
 });
 // Add this enhanced response interceptor to your authApi.js
 api.interceptors.response.use(
