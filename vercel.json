@@ -12,6 +12,10 @@
           {
             "key": "X-Forwarded-Host",
             "value": "kalvitrack.vercel.app"
+          },
+          {
+            "key": "X-Forwarded-Proto",
+            "value": "https"
           }
         ]
       }
