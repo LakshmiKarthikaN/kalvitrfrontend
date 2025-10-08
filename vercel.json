@@ -1,8 +1,0 @@
-{
-    "rewrites": [
-      {
-        "source": "/api/:path*",
-        "destination": "http://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com/api/:path*"
-      }
-    ]
-  }
