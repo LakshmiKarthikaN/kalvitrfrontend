@@ -12,7 +12,7 @@ try {
 // Create Axios instance
 export const api = axios.create({
   baseURL: apiUrl,
-  timeout: 10000, // 30 seconds timeout
+  timeout: 60000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json'
   }
