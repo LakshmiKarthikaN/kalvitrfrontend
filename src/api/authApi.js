@@ -1,12 +1,8 @@
 import axios from "axios";
 
 
-let apiUrl;
-try {
-  apiUrl = import.meta.env?.VITE_API_URL || "https://www.kalvi-track.co.in/api";
-} catch (error) {
-  apiUrl = "https://www.kalvi-track.co.in//api"; // Changed to http
-}
+let apiUrl = import.meta.env.VITE_API_URL;
+console.log("API Base URL:", apiUrl);
 
 export const api = axios.create({
   baseURL: apiUrl,
@@ -16,7 +12,7 @@ export const api = axios.create({
   }
 });
 console.log("API Base URL:", import.meta.env.VITE_API_URL);
-
+console.log("api url", import.meta.env.VITE_API_URL);
 // Add this enhanced response interceptor to your authApi.js
 api.interceptors.response.use(
   (response) => {
