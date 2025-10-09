@@ -1,8 +1,11 @@
 import axios from "axios";
 
-
-let apiUrl = import.meta.env.VITE_API_URL;
-console.log("API Base URL:", apiUrl);
+let apiUrl;
+try {
+  apiUrl = import.meta.env?.VITE_API_URL || "https://www.kalvi-track.co.in/";
+} catch (error) {
+  apiUrl = "https://www.kalvi-track.co.in/";
+}
 
 export const api = axios.create({
   baseURL: apiUrl,
