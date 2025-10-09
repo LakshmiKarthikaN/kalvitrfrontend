@@ -3,9 +3,9 @@ import axios from "axios";
 
 let apiUrl;
 try {
-  apiUrl = import.meta.env?.VITE_API_URL || "https://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com";
+  apiUrl = import.meta.env?.VITE_API_URL || "https://kalvi-track.co.in";
 } catch (error) {
-  apiUrl = "https://kalvitrackweb-env.eba-f54ugkwp.eu-north-1.elasticbeanstalk.com"; // Changed to http
+  apiUrl = "https://kalvi-track.co.in"; // Changed to http
 }
 
 export const api = axios.create({
