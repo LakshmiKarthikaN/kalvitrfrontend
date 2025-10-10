@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 // ✅ Fixed API URL - remove /KalviTrack since it's not in your backend
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -292,7 +292,7 @@ const AdminDashboard = () => {
   
         console.log('Submitting data:', formData);
   
-        const response = await fetch('http://localhost:8080/api/users', {
+        const response = await fetch(`${API_BASE_URL}/users`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
