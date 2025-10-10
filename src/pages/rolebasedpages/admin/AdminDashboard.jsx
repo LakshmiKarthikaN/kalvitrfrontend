@@ -52,6 +52,11 @@ const AdminDashboard = () => {
   });
 
   const togglePortal = () => setPortalStatus((prev) => !prev);
+// Paste the token value (without "Bearer ")
+const tokenValue = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiO..."; // Your actual token
+const parts = tokenValue.split('.');
+const payload = JSON.parse(atob(parts[1]));
+console.log('Decoded Token:', payload);
 
   // ✅ Add auth headers helper
   const getAuthHeaders = () => {
