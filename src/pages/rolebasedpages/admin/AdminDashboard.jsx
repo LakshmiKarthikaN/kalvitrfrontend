@@ -61,68 +61,49 @@ const AdminDashboard = () => {
       ...(token && { 'Authorization': `Bearer ${token}` })
     };
   };
- // Fetch users function - Admin can only see HR and FACULTY
- const fetchUsers = async () => {
+// Fetch users function - Admin can see all users
+const fetchUsers = async () => {
   setLoading(true);
   setError("");
   
   try {
-    const token = localStorage.getItem("token");
-    
-    if (!token) {
-      setError("No authentication token found");
-      window.location.href = "/login";
-      return;
-    }
-
-    // Validate JWT format
-    const tokenParts = token.split('.');
-    if (tokenParts.length !== 3) {
-      setError("Invalid token format");
-      localStorage.removeItem("token");
-      window.location.href = "/login";
-      return;
-    }
-
     console.log("Fetching users for Admin...");
     
-    // Use admin-specific endpoint
-    const response = await fetch(`${API_BASE_URL}/admin/users`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
+    // ✅ Use the getAllUsersApi from authApi.js
+    const response = await getAllUsersApi();
     
-    console.log("Response status:", response.status);
+    console.log("Response:", response);
     
-    if (!response.ok) {
-      if (response.status === 401) {
-        setError("Authentication failed");
-        localStorage.clear();
-        window.location.href = "/login";
-        return;
-      } else if (response.status === 403) {
-        setError("Access forbidden - Admin role required");
-        return;
-      } else {
-        const errorText = await response.text();
-        setError(`Failed to fetch users: ${response.status} ${errorText}`);
-        return;
-      }
+    // Handle different response structures
+    let usersData = [];
+    if (response.data?.success && Array.isArray(response.data.users)) {
+      usersData = response.data.users;
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      usersData = response.data.data;
+    } else if (Array.isArray(response.data)) {
+      usersData = response.data;
     }
-
-    const data = await response.json();
-    console.log("Fetched data:", data);
     
-    if (data.success && Array.isArray(data.users)) {
-      setUsers(data.users);
-      setError("");
-    } else {
-      setError(data.message || "Invalid response format");
-    }
+    // Filter only HR and FACULTY for Admin
+    const filteredUsers = usersData.filter(user => 
+      user.role === 'HR' || user.role === 'FACULTY'
+    );
+    
+    setUsers(filteredUsers);
+    console.log(`✅ Fetched ${filteredUsers.length} users (HR/FACULTY only)`);
     
   } catch (err) {
     console.error("Error fetching users:", err);
-    setError(`Network error: ${err.message}`);
+    
+    if (err.response?.status === 401) {
+      setError("Authentication failed. Please login again.");
+      localStorage.clear();
+      window.location.href = "/login";
+    } else if (err.response?.status === 403) {
+      setError("Access forbidden - Admin role required");
+    } else {
+      setError(err.response?.data?.message || "Failed to fetch users");
+    }
   } finally {
     setLoading(false);
   }
@@ -272,52 +253,48 @@ const AdminDashboard = () => {
     const handleSubmit = async (e) => {
       e.preventDefault();
       setMessage('');
-  
+    
       // Validation
       if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
         setMessage('All fields are required');
         return;
       }
-  
+    
       if (formData.password.length < 6) {
         setMessage('Password must be at least 6 characters long');
         return;
       }
-       // Check if current user has permission to add this role
-   
-  
+    
       try {
         setIsSubmitting(true);
-        const token = localStorage.getItem('token');
-  
         console.log('Submitting data:', formData);
-  
-        const response = await fetch(`${API_BASE_URL}/users`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-  
-        const result = await response.json();
-        console.log('Response:', result);
-  
-        if (response.ok && result.success) {
+    
+        // ✅ Use createUserApi from authApi.js
+        const response = await createUserApi(formData);
+        
+        console.log('Response:', response.data);
+    
+        if (response.data.success) {
           setMessage('User created successfully!');
-          setFormData({ fullName: '',email: '', password: '', role: '' });
+          setFormData({ fullName: '', email: '', password: '', role: '' });
+          
+          // Refresh the user list
+          await fetchUsers();
+          
+          // Auto-close form after 2 seconds
+          setTimeout(() => {
+            setShowAddUserForm(false);
+          }, 2000);
         } else {
-          setMessage(result.message || 'Failed to create user');
+          setMessage(response.data.message || 'Failed to create user');
         }
       } catch (error) {
         console.error('Error:', error);
-        setMessage('Network error occurred');
+        setMessage(error.response?.data?.message || 'Network error occurred');
       } finally {
         setIsSubmitting(false);
       }
     };
-    
   
     return (
       <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
