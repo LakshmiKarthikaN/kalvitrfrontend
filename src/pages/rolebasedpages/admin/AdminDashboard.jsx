@@ -68,7 +68,21 @@ const fetchUsers = async () => {
   
   try {
     console.log("Fetching users for Admin...");
+    const token = localStorage.getItem("token");
+    const userRole = localStorage.getItem("userRole");
     
+    console.log("=== TOKEN DEBUG ===");
+    console.log("Token exists:", !!token);
+    console.log("Token preview:", token?.substring(0, 30) + "...");
+    console.log("User role:", userRole);
+    console.log("==================");
+    
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+    
+    console.log("Fetching users for Admin...");
+
     // ✅ Use the getAllUsersApi from authApi.js
     const response = await getAllUsersApi();
     
