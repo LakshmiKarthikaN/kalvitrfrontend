@@ -127,9 +127,7 @@ api.interceptors.response.use(
  */
 export const loginApi = async (credentials) => {
   try {
-    //console.log("=== UNIFIED LOGIN ATTEMPT ===");
-    //console.log("Email:", credentials.email);
-    
+    console.log("🔄 Attempting login...");
     const response = await api.post("/auth/login", credentials);
     
     if (response.data.success && response.data.token) {
@@ -137,21 +135,81 @@ export const loginApi = async (credentials) => {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("userRole", response.data.role);
       localStorage.setItem("userEmail", response.data.email);
+      localStorage.setItem("userId", response.data.userId);
+      localStorage.setItem("userName", response.data.name);
       
       console.log("✅ Login successful - Role:", response.data.role);
+      console.log("✅ User:", response.data.name, "Email:", response.data.email);
+    } else {
+      console.log("❌ Login failed:", response.data.message);
     }
     
     return response;
   } catch (error) {
     console.error("❌ Login failed:", error.response?.data?.message || error.message);
+    
+    // Clear any existing auth data on login failure
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    
     throw error;
   }
 };
 
-export const adminLoginApi = (credentials) => {
-  console.log("Admin-specific login attempt");
-  return api.post("/auth/admin/login", credentials);
+export const adminLoginApi = async (credentials) => {
+  try {
+    console.log("🔄 Admin-specific login attempt");
+    const response = await api.post("/auth/admin/login", credentials);
+    
+    if (response.data.success && response.data.token) {
+      // Store admin authentication data
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("userRole", response.data.role);
+      localStorage.setItem("userEmail", response.data.email);
+      localStorage.setItem("userId", response.data.userId);
+      localStorage.setItem("userName", response.data.name);
+      
+      console.log("✅ Admin login successful - Role:", response.data.role);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error("❌ Admin login failed:", error.response?.data?.message || error.message);
+    throw error;
+  }
 };
+
+// Helper function to clear all auth data
+export const clearAuthData = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userName");
+  console.log("🧹 Auth data cleared");
+};
+
+// Helper function to check if user is authenticated
+export const isAuthenticated = () => {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("userRole");
+  return !!(token && role);
+};
+
+// Helper function to get current user info
+export const getCurrentUser = () => {
+  return {
+    token: localStorage.getItem("token"),
+    role: localStorage.getItem("userRole"),
+    email: localStorage.getItem("userEmail"),
+    userId: localStorage.getItem("userId"),
+    name: localStorage.getItem("userName")
+  };
+};
+
 
 export const hrLoginApi = (credentials) => {
   console.log("HR-specific login attempt");
