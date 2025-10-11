@@ -125,21 +125,71 @@ api.interceptors.response.use(
  * ✅ UNIFIED LOGIN - Handles both Users (Admin, HR, Faculty) and Students (ZSGS, PMIS)
  * This is the main login function that should be used for all login attempts
  */
+// Add this helper function to validate tokens
+export const isValidToken = (token) => {
+  if (!token || typeof token !== 'string') {
+    return false;
+  }
+  
+  // Check if it's a valid JWT format (3 parts separated by dots)
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    return false;
+  }
+  
+  // Try to decode the header and payload
+  try {
+    atob(parts[0]); // Header
+    atob(parts[1]); // Payload
+    return true;
+  } catch (error) {
+    console.error('Invalid token format:', error);
+    return false;
+  }
+};
+
+// Enhanced token storage with validation
+export const storeToken = (token) => {
+  if (!isValidToken(token)) {
+    console.error('❌ Invalid token format, not storing');
+    return false;
+  }
+  
+  localStorage.setItem("token", token);
+  return true;
+};
+
+// Safe token retrieval
+export const getToken = () => {
+  const token = localStorage.getItem("token");
+  
+  if (!isValidToken(token)) {
+    console.warn('⚠️ Invalid token found, clearing storage');
+    clearAuthData();
+    return null;
+  }
+  
+  return token;
+};
 export const loginApi = async (credentials) => {
   try {
     console.log("🔄 Attempting login...");
     const response = await api.post("/auth/login", credentials);
     
     if (response.data.success && response.data.token) {
+      // Validate token before storing
+      if (!isValidToken(response.data.token)) {
+        throw new Error('Invalid token received from server');
+      }
+      
       // Store authentication data
       localStorage.setItem("token", response.data.token);
-      localStorage.setItem("userRole", response.data.role);
-      localStorage.setItem("userEmail", response.data.email);
-      localStorage.setItem("userId", response.data.userId);
-      localStorage.setItem("userName", response.data.name);
+      localStorage.setItem("userRole", response.data.role || '');
+      localStorage.setItem("userEmail", response.data.email || '');
+      localStorage.setItem("userId", response.data.userId || '');
+      localStorage.setItem("userName", response.data.name || '');
       
       console.log("✅ Login successful - Role:", response.data.role);
-      console.log("✅ User:", response.data.name, "Email:", response.data.email);
     } else {
       console.log("❌ Login failed:", response.data.message);
     }
@@ -148,16 +198,13 @@ export const loginApi = async (credentials) => {
   } catch (error) {
     console.error("❌ Login failed:", error.response?.data?.message || error.message);
     
-    // Clear any existing auth data on login failure
-    localStorage.removeItem("token");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
+    // Clear any corrupted auth data
+    clearAuthData();
     
     throw error;
   }
 };
+
 
 export const adminLoginApi = async (credentials) => {
   try {
