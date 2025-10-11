@@ -1,6 +1,6 @@
 // ProtectedRoute.js
 import { Navigate } from 'react-router-dom';
-import { isAuthenticated, getCurrentUser, clearAuthData } from './api/auth';
+import { isAuthenticated, getCurrentUser, clearAuthData } from './api/authApi.js';
 import { useEffect } from 'react';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
