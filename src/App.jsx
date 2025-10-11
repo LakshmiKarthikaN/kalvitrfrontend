@@ -9,6 +9,8 @@ import ResetPassword from "./pages/initialpages/ResetPassword.jsx";
 import InterviewPanelist from "./pages/rolebasedpages/hr/interviewmanagement/interviewpanelistpage/InterviewPanelist.jsx";
 import StudentAvailabilityPage from "./pages/rolebasedpages/hr/interviewmanagement/availabiltypages/StudentAvailability.jsx";
 import InterviewPanelistPortal from "./pages/rolebasedpages/hr/interviewmanagement/availabiltypages/InterviewPanelistPortal.jsx";
+import ProtectedRoute from './components/ProtectedRoute';
+
 function App() {
   return (
     <Router >
@@ -20,7 +22,11 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />  {/* 👈 MUST BE PUBLIC */}
        {/* Dashboard routes */}
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/admin-dashboard"  element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }  />
         <Route path="/hr-dashboard" element={<HrDashboard />} />
         <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
         <Route path ="/interview-panelist" element={<InterviewPanelist/>}/>

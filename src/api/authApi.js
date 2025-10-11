@@ -125,28 +125,7 @@ api.interceptors.response.use(
  * ✅ UNIFIED LOGIN - Handles both Users (Admin, HR, Faculty) and Students (ZSGS, PMIS)
  * This is the main login function that should be used for all login attempts
  */
-// Add this helper function to validate tokens
-export const isValidToken = (token) => {
-  if (!token || typeof token !== 'string') {
-    return false;
-  }
-  
-  // Check if it's a valid JWT format (3 parts separated by dots)
-  const parts = token.split('.');
-  if (parts.length !== 3) {
-    return false;
-  }
-  
-  // Try to decode the header and payload
-  try {
-    atob(parts[0]); // Header
-    atob(parts[1]); // Payload
-    return true;
-  } catch (error) {
-    console.error('Invalid token format:', error);
-    return false;
-  }
-};
+
 
 // Enhanced token storage with validation
 export const storeToken = (token) => {
@@ -205,9 +184,120 @@ export const loginApi = async (credentials) => {
   }
 };
 
-// Enhanced admin login with validation
+
+// auth.js - Bulletproof version
+export const safeAtob = (str) => {
+  try {
+    if (!str || typeof str !== 'string') {
+      return null;
+    }
+    return atob(str);
+  } catch (error) {
+    console.error('Failed to decode base64 string:', error);
+    return null;
+  }
+};
+
+export const isValidToken = (token) => {
+  try {
+    if (!token || typeof token !== 'string') {
+      return false;
+    }
+    
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return false;
+    }
+    
+    // Use safe atob function
+    const header = safeAtob(parts[0]);
+    const payload = safeAtob(parts[1]);
+    
+    return !!(header && payload);
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return false;
+  }
+};
+
+export const clearAuthData = () => {
+  try {
+    const keysToRemove = [
+      "token", "userRole", "userEmail", "userId", "userName",
+      "tokenExpiration", "refreshToken", "authData"
+    ];
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    
+    console.log("🧹 Auth data cleared successfully");
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
+    // Force clear everything if individual removal fails
+    localStorage.clear();
+    sessionStorage.clear();
+  }
+};
+
+export const safeGetItem = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    
+    // If it's a token, validate it
+    if (key === 'token' && item && !isValidToken(item)) {
+      console.warn(`Invalid ${key} found, clearing auth data`);
+      clearAuthData();
+      return null;
+    }
+    
+    return item;
+  } catch (error) {
+    console.error(`Error getting ${key}:`, error);
+    clearAuthData();
+    return null;
+  }
+};
+
+export const isAuthenticated = () => {
+  try {
+    const token = safeGetItem("token");
+    const role = safeGetItem("userRole");
+    
+    return !!(token && role);
+  } catch (error) {
+    console.error('Authentication check failed:', error);
+    clearAuthData();
+    return false;
+  }
+};
+
+export const getCurrentUser = () => {
+  try {
+    if (!isAuthenticated()) {
+      return null;
+    }
+    
+    return {
+      token: safeGetItem("token"),
+      role: safeGetItem("userRole"),
+      email: safeGetItem("userEmail"),
+      userId: safeGetItem("userId"),
+      name: safeGetItem("userName")
+    };
+  } catch (error) {
+    console.error('Failed to get current user:', error);
+    clearAuthData();
+    return null;
+  }
+};
+
 export const adminLoginApi = async (credentials) => {
   try {
+    // Clear any existing data before login
+    clearAuthData();
+    
     console.log("🔄 Admin login attempt...");
     const response = await api.post("/auth/admin/login", credentials);
     
@@ -217,75 +307,21 @@ export const adminLoginApi = async (credentials) => {
         throw new Error('Invalid token received from server');
       }
       
-      // Validate admin role
-      if (response.data.role !== 'admin') {
-        throw new Error('User does not have admin privileges');
-      }
-      
-      // Store authentication data
+      // Store data safely
       localStorage.setItem("token", response.data.token);
-      localStorage.setItem("userRole", response.data.role);
+      localStorage.setItem("userRole", response.data.role || '');
       localStorage.setItem("userEmail", response.data.email || '');
       localStorage.setItem("userId", response.data.userId || '');
       localStorage.setItem("userName", response.data.name || '');
       
-      console.log("✅ Admin login successful - User:", response.data.name);
-    } else {
-      console.log("❌ Admin login failed:", response.data.message);
+      console.log("✅ Admin login successful");
     }
     
     return response;
   } catch (error) {
     console.error("❌ Admin login failed:", error.response?.data?.message || error.message);
-    
-    // Clear any corrupted data on login failure
     clearAuthData();
-    
     throw error;
-  }
-};
-
-// Enhanced clear function
-export const clearAuthData = () => {
-  const keysToRemove = [
-    "token", 
-    "userRole", 
-    "userEmail", 
-    "userId", 
-    "userName",
-    "tokenExpiration" // Add this if you use token expiration
-  ];
-  
-  keysToRemove.forEach(key => {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key); // Clear session storage too
-  });
-  
-  console.log("🧹 Auth data cleared");
-};
-
-// Enhanced authentication check
-export const isAuthenticated = () => {
-  try {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("userRole");
-    
-    if (!token || !role) {
-      return false;
-    }
-    
-    // Validate token format
-    if (!isValidToken(token)) {
-      console.warn('⚠️ Invalid token found, clearing auth data');
-      clearAuthData();
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Authentication check failed:', error);
-    clearAuthData();
-    return false;
   }
 };
 
@@ -294,26 +330,7 @@ export const isAdmin = () => {
   return isAuthenticated() && localStorage.getItem("userRole") === "admin";
 };
 
-// Get current user safely
-export const getCurrentUser = () => {
-  try {
-    if (!isAuthenticated()) {
-      return null;
-    }
-    
-    return {
-      token: localStorage.getItem("token"),
-      role: localStorage.getItem("userRole"),
-      email: localStorage.getItem("userEmail"),
-      userId: localStorage.getItem("userId"),
-      name: localStorage.getItem("userName")
-    };
-  } catch (error) {
-    console.error('Failed to get current user:', error);
-    clearAuthData();
-    return null;
-  }
-};
+
 
 // Safe logout function
 export const logout = () => {
