@@ -35,9 +35,14 @@ function App() {
         {/* Legacy redirects */}
        
         <Route
-          path="/rolebasedpages/admin/admindashboard"
-          element={<Navigate to="/admin-dashboard" replace />}
-        />
+  path="/rolebasedpages/admin/admindashboard"
+  element={
+    <ProtectedRoute requiredRole="ADMIN">
+      <Navigate to="/admin-dashboard" replace />
+    </ProtectedRoute>
+  }
+/>
+
         <Route
           path="/rolebasedpages/hr/hrdashboard"
           element={<Navigate to="/hr-dashboard" replace />}
