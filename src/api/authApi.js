@@ -205,56 +205,122 @@ export const loginApi = async (credentials) => {
   }
 };
 
-
+// Enhanced admin login with validation
 export const adminLoginApi = async (credentials) => {
   try {
-    console.log("🔄 Admin-specific login attempt");
+    console.log("🔄 Admin login attempt...");
     const response = await api.post("/auth/admin/login", credentials);
     
     if (response.data.success && response.data.token) {
-      // Store admin authentication data
+      // Validate token before storing
+      if (!isValidToken(response.data.token)) {
+        throw new Error('Invalid token received from server');
+      }
+      
+      // Validate admin role
+      if (response.data.role !== 'admin') {
+        throw new Error('User does not have admin privileges');
+      }
+      
+      // Store authentication data
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("userRole", response.data.role);
-      localStorage.setItem("userEmail", response.data.email);
-      localStorage.setItem("userId", response.data.userId);
-      localStorage.setItem("userName", response.data.name);
+      localStorage.setItem("userEmail", response.data.email || '');
+      localStorage.setItem("userId", response.data.userId || '');
+      localStorage.setItem("userName", response.data.name || '');
       
-      console.log("✅ Admin login successful - Role:", response.data.role);
+      console.log("✅ Admin login successful - User:", response.data.name);
+    } else {
+      console.log("❌ Admin login failed:", response.data.message);
     }
     
     return response;
   } catch (error) {
     console.error("❌ Admin login failed:", error.response?.data?.message || error.message);
+    
+    // Clear any corrupted data on login failure
+    clearAuthData();
+    
     throw error;
   }
 };
 
-// Helper function to clear all auth data
+// Enhanced clear function
 export const clearAuthData = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("userRole");
-  localStorage.removeItem("userEmail");
-  localStorage.removeItem("userId");
-  localStorage.removeItem("userName");
+  const keysToRemove = [
+    "token", 
+    "userRole", 
+    "userEmail", 
+    "userId", 
+    "userName",
+    "tokenExpiration" // Add this if you use token expiration
+  ];
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key); // Clear session storage too
+  });
+  
   console.log("🧹 Auth data cleared");
 };
 
-// Helper function to check if user is authenticated
+// Enhanced authentication check
 export const isAuthenticated = () => {
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("userRole");
-  return !!(token && role);
+  try {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("userRole");
+    
+    if (!token || !role) {
+      return false;
+    }
+    
+    // Validate token format
+    if (!isValidToken(token)) {
+      console.warn('⚠️ Invalid token found, clearing auth data');
+      clearAuthData();
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Authentication check failed:', error);
+    clearAuthData();
+    return false;
+  }
 };
 
-// Helper function to get current user info
+// Check if user is admin
+export const isAdmin = () => {
+  return isAuthenticated() && localStorage.getItem("userRole") === "admin";
+};
+
+// Get current user safely
 export const getCurrentUser = () => {
-  return {
-    token: localStorage.getItem("token"),
-    role: localStorage.getItem("userRole"),
-    email: localStorage.getItem("userEmail"),
-    userId: localStorage.getItem("userId"),
-    name: localStorage.getItem("userName")
-  };
+  try {
+    if (!isAuthenticated()) {
+      return null;
+    }
+    
+    return {
+      token: localStorage.getItem("token"),
+      role: localStorage.getItem("userRole"),
+      email: localStorage.getItem("userEmail"),
+      userId: localStorage.getItem("userId"),
+      name: localStorage.getItem("userName")
+    };
+  } catch (error) {
+    console.error('Failed to get current user:', error);
+    clearAuthData();
+    return null;
+  }
+};
+
+// Safe logout function
+export const logout = () => {
+  clearAuthData();
+  console.log("👋 User logged out");
+  // Optionally redirect to login page
+  window.location.href = '/login';
 };
 
 
