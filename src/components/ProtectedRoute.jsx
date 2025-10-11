@@ -1,43 +1,70 @@
-// ProtectedRoute.js
+// src/components/ProtectedRoute.jsx
 import { Navigate } from 'react-router-dom';
 import { isAuthenticated, getCurrentUser, clearAuthData } from '../api/authApi.js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
+  const [isChecking, setIsChecking] = useState(true);
+  const [shouldRender, setShouldRender] = useState(false);
+
   useEffect(() => {
-    // Add error boundary for this component
-    const handleError = (error) => {
-      if (error.message && error.message.includes('atob')) {
-        console.warn('Token error in protected route, clearing data');
+    const checkAuth = async () => {
+      try {
+        console.log('🔍 ProtectedRoute checking auth...');
+        
+        const authenticated = isAuthenticated();
+        console.log('Auth result:', authenticated);
+        
+        if (!authenticated) {
+          console.log('❌ Not authenticated');
+          setShouldRender(false);
+          setIsChecking(false);
+          return;
+        }
+        
+        if (requiredRole) {
+          const user = getCurrentUser();
+          const userRole = user?.role?.toUpperCase();
+          const requiredRoleUpper = requiredRole.toUpperCase();
+          
+          console.log('🎭 Role check:', userRole, 'vs', requiredRoleUpper);
+          
+          if (!user || userRole !== requiredRoleUpper) {
+            console.log('❌ Role mismatch');
+            setShouldRender(false);
+            setIsChecking(false);
+            return;
+          }
+        }
+        
+        console.log('✅ All checks passed');
+        setShouldRender(true);
+        setIsChecking(false);
+      } catch (error) {
+        console.error('❌ Auth check error:', error);
         clearAuthData();
-        window.location.href = '/login';
+        setShouldRender(false);
+        setIsChecking(false);
       }
     };
-    
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-  
-  try {
-    const authenticated = isAuthenticated();
-    
-    if (!authenticated) {
-      return <Navigate to="/login" replace />;
-    }
-    
-    if (requiredRole) {
-      const user = getCurrentUser();
-      if (!user || user.role !== requiredRole) {
-        return <Navigate to="/unauthorized" replace />;
-      }
-    }
-    
-    return children;
-  } catch (error) {
-    console.error('Protected route error:', error);
-    clearAuthData();
-    return <Navigate to="/login" replace />;
+
+    checkAuth();
+  }, [requiredRole]);
+
+  if (isChecking) {
+    return <div>Loading...</div>;
   }
+
+  if (!shouldRender) {
+    const authenticated = isAuthenticated();
+    if (!authenticated) {
+      return <Navigate to="/admin-login" replace />;
+    } else {
+      return <Navigate to="/unauthorized" replace />;
+    }
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;

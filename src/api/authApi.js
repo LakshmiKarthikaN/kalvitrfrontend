@@ -186,34 +186,53 @@ export const loginApi = async (credentials) => {
 
 
 // auth.js - Bulletproof version
+// src/api/auth.js
 export const safeAtob = (str) => {
   try {
-    if (!str || typeof str !== 'string') {
+    if (!str || typeof str !== 'string' || str.trim() === '') {
       return null;
     }
+    
+    // Remove any whitespace
+    str = str.trim();
+    
+    // Check if it looks like base64
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(str)) {
+      console.warn('Invalid base64 format');
+      return null;
+    }
+    
     return atob(str);
   } catch (error) {
-    console.error('Failed to decode base64 string:', error);
+    console.error('Failed to decode base64:', error);
     return null;
   }
 };
 
 export const isValidToken = (token) => {
   try {
-    if (!token || typeof token !== 'string') {
+    if (!token || typeof token !== 'string' || token.trim() === '') {
       return false;
     }
     
+    token = token.trim();
     const parts = token.split('.');
+    
     if (parts.length !== 3) {
+      console.warn('Token does not have 3 parts');
       return false;
     }
     
-    // Use safe atob function
-    const header = safeAtob(parts[0]);
-    const payload = safeAtob(parts[1]);
+    // Try to decode each part safely
+    for (let i = 0; i < 2; i++) { // Only check header and payload
+      const decoded = safeAtob(parts[i]);
+      if (!decoded) {
+        console.warn(`Failed to decode token part ${i}`);
+        return false;
+      }
+    }
     
-    return !!(header && payload);
+    return true;
   } catch (error) {
     console.error('Token validation error:', error);
     return false;
@@ -222,22 +241,38 @@ export const isValidToken = (token) => {
 
 export const clearAuthData = () => {
   try {
-    const keysToRemove = [
-      "token", "userRole", "userEmail", "userId", "userName",
-      "tokenExpiration", "refreshToken", "authData"
-    ];
+    console.log('🧹 Clearing all auth data...');
     
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
+    // Clear localStorage
+    const lsKeys = Object.keys(localStorage);
+    lsKeys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn(`Failed to remove ${key} from localStorage`);
+      }
     });
     
-    console.log("🧹 Auth data cleared successfully");
+    // Clear sessionStorage
+    const ssKeys = Object.keys(sessionStorage);
+    ssKeys.forEach(key => {
+      try {
+        sessionStorage.removeItem(key);
+      } catch (e) {
+        console.warn(`Failed to remove ${key} from sessionStorage`);
+      }
+    });
+    
+    console.log('✅ Auth data cleared');
   } catch (error) {
     console.error('Error clearing auth data:', error);
-    // Force clear everything if individual removal fails
-    localStorage.clear();
-    sessionStorage.clear();
+    // Nuclear option
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.error('Failed to clear storage completely');
+    }
   }
 };
 
@@ -245,11 +280,17 @@ export const safeGetItem = (key) => {
   try {
     const item = localStorage.getItem(key);
     
-    // If it's a token, validate it
-    if (key === 'token' && item && !isValidToken(item)) {
-      console.warn(`Invalid ${key} found, clearing auth data`);
-      clearAuthData();
+    if (!item) {
       return null;
+    }
+    
+    // Special handling for token
+    if (key === 'token') {
+      if (!isValidToken(item)) {
+        console.warn('Invalid token found, clearing all data');
+        clearAuthData();
+        return null;
+      }
     }
     
     return item;
@@ -265,7 +306,10 @@ export const isAuthenticated = () => {
     const token = safeGetItem("token");
     const role = safeGetItem("userRole");
     
-    return !!(token && role);
+    const result = !!(token && role);
+    console.log('🔍 Auth check:', { hasToken: !!token, hasRole: !!role, result });
+    
+    return result;
   } catch (error) {
     console.error('Authentication check failed:', error);
     clearAuthData();
@@ -295,7 +339,7 @@ export const getCurrentUser = () => {
 
 export const adminLoginApi = async (credentials) => {
   try {
-    // Clear any existing data before login
+    // Clear any existing corrupted data first
     clearAuthData();
     
     console.log("🔄 Admin login attempt...");
@@ -314,12 +358,12 @@ export const adminLoginApi = async (credentials) => {
       localStorage.setItem("userId", response.data.userId || '');
       localStorage.setItem("userName", response.data.name || '');
       
-      console.log("✅ Admin login successful");
+      console.log("✅ Admin login successful, role:", response.data.role);
     }
     
     return response;
   } catch (error) {
-    console.error("❌ Admin login failed:", error.response?.data?.message || error.message);
+    console.error("❌ Admin login failed:", error);
     clearAuthData();
     throw error;
   }

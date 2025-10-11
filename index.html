@@ -10,4 +10,34 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
+  <!-- Add this script tag to your index.html before other scripts -->
+<script>
+  window.addEventListener('error', function(event) {
+    if (event.error && event.error.message && event.error.message.includes('atob')) {
+      console.warn('🧹 Corrupted token detected, clearing storage');
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Prevent the error from crashing the app
+      event.preventDefault();
+      
+      // Redirect to login if on a protected route
+      if (window.location.pathname.includes('dashboard')) {
+        window.location.href = '/admin-login';
+      }
+      
+      return false;
+    }
+  });
+  
+  window.addEventListener('unhandledrejection', function(event) {
+    if (event.reason && event.reason.message && event.reason.message.includes('atob')) {
+      console.warn('🧹 Promise rejection with token error');
+      localStorage.clear();
+      sessionStorage.clear();
+      event.preventDefault();
+    }
+  });
+  </script>
+  
 </html>
