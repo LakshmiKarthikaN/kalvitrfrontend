@@ -3,7 +3,7 @@ import { Formik, Form } from "formik";
 import { Button, InputField } from "../../components/common";
 import { AuthLayout } from "../../components/layout";
 import { loginSchema } from "../../utils/validatorslogic/Validators";
-import { loginApi } from "../api/authApi";
+import { loginApi } from "../../api/authApi.js";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
