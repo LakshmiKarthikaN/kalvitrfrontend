@@ -23,9 +23,9 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />  {/* 👈 MUST BE PUBLIC */}
        {/* Dashboard routes */}
         <Route path="/admin-dashboard"  element={
-            
+            <ProtectedRoute requiredRole="ADMIN">
               <AdminDashboard />
-           
+            </ProtectedRoute>
           }  />
         <Route path="/hr-dashboard" element={<HrDashboard />} />
         <Route path="/faculty-dashboard" element={<FacultyDashboard />} />

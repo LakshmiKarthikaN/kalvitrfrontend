@@ -340,6 +340,8 @@ export const getCurrentUser = () => {
       userId: safeGetItem("userId"),
       name: safeGetItem("userName")
     };
+  
+
   } catch (error) {
     console.error('Failed to get current user:', error);
     clearAuthData();
