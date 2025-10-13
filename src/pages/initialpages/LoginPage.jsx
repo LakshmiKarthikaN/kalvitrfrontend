@@ -65,7 +65,7 @@ const LoginPage = () => {
                     navigate("/student-profile");
                     break;
                     case "INTERVIEW_PANELIST":
-                      navigate("/rolebasedpages/hr/interviewmanagement/availabilitypages/interviewpaenlist-portal");
+                      navigate("/interviewpaenlist-portal");
                       break;
                   default:
                     setErrors({

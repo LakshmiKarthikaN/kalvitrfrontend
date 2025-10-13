@@ -40,7 +40,9 @@ function App() {
       <Navigate to="/admin-dashboard" replace />
    
   }
-/>
+/>  <Route
+  path="/rolebasedpages/hr/interviewmanagement/availabilitypages/interviewpaenlist-portal"
+  element={<InterviewPanelistPortal />}/>
 
         <Route
           path="/rolebasedpages/hr/hrdashboard"
@@ -50,9 +52,12 @@ function App() {
           path="/rolebasedpages/faculty/facultydashboard"
           element={<Navigate to="/faculty-dashboard" replace />}
         />
+        
 
         {/* Catch-all redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
+      
+
       </Routes>
     </Router>
   );
