@@ -64,6 +64,9 @@ const LoginPage = () => {
                   case "ZSGS":
                     navigate("/student-profile");
                     break;
+                    case "INTERVIEW_PANELIST":
+                      navigate("/rolebasedpages/hr/interviewmanagement/availabilitypages/interviewpaenlist-portal");
+                      break;
                   default:
                     setErrors({
                       email: "Unknown role. Please contact admin.",
