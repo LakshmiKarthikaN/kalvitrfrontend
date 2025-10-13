@@ -9,7 +9,7 @@ import ResetPassword from "./pages/initialpages/ResetPassword.jsx";
 import InterviewPanelist from "./pages/rolebasedpages/hr/interviewmanagement/interviewpanelistpage/InterviewPanelist.jsx";
 import StudentAvailabilityPage from "./pages/rolebasedpages/hr/interviewmanagement/availabiltypages/StudentAvailability.jsx";
 import InterviewPanelistPortal from "./pages/rolebasedpages/hr/interviewmanagement/availabiltypages/InterviewPanelistPortal.jsx";
-import ProtectedRoute from './components/ProtectedRoute';
+//import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -37,9 +37,8 @@ function App() {
         <Route
   path="/rolebasedpages/admin/admindashboard"
   element={
-    <ProtectedRoute requiredRole="ADMIN">
       <Navigate to="/admin-dashboard" replace />
-    </ProtectedRoute>
+   
   }
 />
 
