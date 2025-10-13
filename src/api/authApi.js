@@ -186,27 +186,33 @@ export const loginApi = async (credentials) => {
     throw error;
   }
 };
-
 export const safeAtob = (str) => {
   try {
-    if (!str || typeof str !== 'string' || str.trim() === '') {
+    if (!str || typeof str !== 'string') {
+      console.warn('⚠️ safeAtob: invalid input type or empty string');
       return null;
     }
-    
-    // Remove any whitespace
+
+    // Trim and sanitize
     str = str.trim();
-    
-    // Add padding if needed for base64url (JWT uses base64url encoding)
+
+    // Reject if contains invalid characters (not base64url safe)
+    if (!/^[A-Za-z0-9\-_]+$/.test(str)) {
+      console.warn('⚠️ safeAtob: string contains invalid base64url characters');
+      return null;
+    }
+
+    // Add padding if needed
     while (str.length % 4 !== 0) {
       str += '=';
     }
-    
-    // Replace URL-safe characters with standard base64
+
+    // Replace URL-safe chars
     str = str.replace(/-/g, '+').replace(/_/g, '/');
-    
+
     return atob(str);
   } catch (error) {
-    console.error('Failed to decode base64:', error);
+    console.error('❌ safeAtob failed:', error.message, '\nInput:', str);
     return null;
   }
 };
@@ -216,37 +222,33 @@ export const isValidToken = (token) => {
       console.warn('❌ Token is empty or invalid type');
       return false;
     }
-    
+
     token = token.trim();
     const parts = token.split('.');
-    
+
     if (parts.length !== 3) {
-      console.warn('❌ Token does not have 3 parts:', parts.length);
+      console.warn('❌ Token does not have 3 parts');
       return false;
     }
-    
-    // Validate each part can be decoded
-    for (let i = 0; i < 2; i++) { // Only check header and payload
-      if (!parts[i] || parts[i].length === 0) {
-        console.warn(`❌ Token part ${i} is empty`);
-        return false;
-      }
-      
+
+    // Decode header and payload safely
+    for (let i = 0; i < 2; i++) {
       const decoded = safeAtob(parts[i]);
       if (!decoded) {
-        console.warn(`❌ Failed to decode token part ${i}`);
+        console.warn(`⚠️ Failed to decode token part ${i}`);
+        console.log("Invalid token snippet:", str.slice(0, 50) + "...");
+
         return false;
       }
-      
-      // Try to parse as JSON
+
       try {
         JSON.parse(decoded);
       } catch (e) {
-        console.warn(`❌ Token part ${i} is not valid JSON`);
+        console.warn(`⚠️ Token part ${i} is not valid JSON`);
         return false;
       }
     }
-    
+
     console.log('✅ Token validation passed');
     return true;
   } catch (error) {
@@ -254,6 +256,7 @@ export const isValidToken = (token) => {
     return false;
   }
 };
+
 export const clearAuthData = () => {
   try {
     console.log('🧹 Clearing auth data...');
