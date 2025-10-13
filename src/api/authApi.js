@@ -236,8 +236,7 @@ export const isValidToken = (token) => {
       const decoded = safeAtob(parts[i]);
       if (!decoded) {
         console.warn(`⚠️ Failed to decode token part ${i}`);
-        console.log("Invalid token snippet:", str.slice(0, 50) + "...");
-
+        console.log("Invalid token snippet:", parts[i]?.slice(0, 50) + "...");
         return false;
       }
 
@@ -256,6 +255,7 @@ export const isValidToken = (token) => {
     return false;
   }
 };
+
 
 export const clearAuthData = () => {
   try {
