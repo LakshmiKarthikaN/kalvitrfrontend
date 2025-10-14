@@ -118,7 +118,14 @@ const RegisterPage = () => {
                 console.log("Registration completed successfully");
                 setStatus({ success: true, message: res.data.message || "Registration successful!" });
                 
-             
+                setTimeout(() => {
+                  navigate("/login", {
+                    state: { 
+                      message: "Registration completed successfully! Please login.",
+                      email: values.email
+                    }
+                  });
+                }, 4000);
                 
               } else {
                 const errorMessage = res.data?.message || "Registration failed";
