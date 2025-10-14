@@ -364,7 +364,7 @@ const InterviewPanelistPortal = () => {
           {[
             { id: 'availability', label: 'Set Availability', icon: Calendar, color: 'emerald' },
             { id: 'students', label: 'Assigned Students', icon: Users, color: 'teal' },
-            { id: 'current', label: 'Current Availability', icon: Clock, color: 'blue' },
+            { id: 'current', label: 'Current Availability', icon: Clock, color: 'teal' },
           ].map(({ id, label, icon: Icon, color }) => (
             <button
               key={id}
@@ -375,7 +375,7 @@ const InterviewPanelistPortal = () => {
                       ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-xl transform scale-105'
                       : color === 'teal'
                       ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-xl transform scale-105'
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-xl transform scale-105')
+                      : 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-xl transform scale-105')
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80'
               }`}
             >
@@ -569,11 +569,11 @@ const InterviewPanelistPortal = () => {
         {activeTab === 'current' && (
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-emerald-100 p-8">
             <div className="flex items-center space-x-4 mb-8">
-              <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl shadow-lg">
+              <div className="p-4 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl shadow-lg">
                 <Clock className="text-white" size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                   Current Availability
                 </h2>
                 <p className="text-gray-600">View and manage your existing availability slots</p>
@@ -582,8 +582,8 @@ const InterviewPanelistPortal = () => {
 
             {currentAvailabilities.length === 0 ? (
               <div className="text-center py-16">
-                <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-3xl flex items-center justify-center mb-6">
-                  <Clock className="text-blue-600" size={32} />
+                <div className="mx-auto w-24 h-24 bg-gradient-to-br from-teal-100 to-cyan-100 rounded-3xl flex items-center justify-center mb-6">
+                  <Clock className="text-teal-600" size={32} />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">No availability set</h3>
                 <p className="text-gray-500">Set your availability in the "Set Availability" tab.</p>
@@ -591,11 +591,11 @@ const InterviewPanelistPortal = () => {
             ) : (
               <div className="space-y-4">
                 {currentAvailabilities.map((slot) => (
-                  <div key={slot.availabilityId} className="border-2 border-blue-100 hover:border-blue-300 rounded-xl p-6 bg-white/80 backdrop-blur-sm transition-all duration-300 hover:shadow-lg">
+                  <div key={slot.availabilityId} className="border-2 border-teal-100 hover:border-teal-300 rounded-xl p-6 bg-white/80 backdrop-blur-sm transition-all duration-300 hover:shadow-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-4 mb-2">
-                          <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full"></div>
+                          <div className="w-3 h-3 bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full"></div>
                           <span className="font-bold text-lg text-gray-900">
                             {new Date(slot.availableDate).toLocaleDateString('en-US', { 
                               weekday: 'long', 
@@ -626,7 +626,7 @@ const InterviewPanelistPortal = () => {
                           <>
                             <button
                               onClick={() => setEditingSlot(slot)}
-                              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                              className="p-2 text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-all duration-200"
                             >
                               <Edit size={16} />
                             </button>
@@ -735,7 +735,7 @@ const InterviewPanelistPortal = () => {
                             student.status === 'COMPLETED' 
                               ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
                               : student.status === 'LINK_ADDED'
-                              ? 'bg-gradient-to-r from-blue-400 to-cyan-500 text-white'
+                              ? 'bg-gradient-to-r from-teal-400 to-cyan-500 text-white'
                               : 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
                           }`}>
                             {student.status.replace('_', ' ')}
@@ -756,16 +756,16 @@ const InterviewPanelistPortal = () => {
                       </div>
 
                       {student.meetingLink && (
-                        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-100 relative">
+                        <div className="mt-6 p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-100 relative">
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                            <p className="text-sm font-bold text-blue-900">Meeting Link Available</p>
+                            <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                            <p className="text-sm font-bold text-teal-900">Meeting Link Available</p>
                           </div>
                           <a 
                             href={student.meetingLink} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-sm break-all font-medium underline decoration-dotted hover:decoration-solid transition-all"
+                            className="text-teal-600 hover:text-teal-800 text-sm break-all font-medium underline decoration-dotted hover:decoration-solid transition-all"
                           >
                             {student.meetingLink}
                           </a>
@@ -776,7 +776,7 @@ const InterviewPanelistPortal = () => {
                         {!student.meetingLink && student.status === 'SCHEDULED' && (
                           <button
                             onClick={() => addMeetingLink(student.sessionId)}
-                            className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 group"
+                            className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white px-6 py-3 rounded-xl hover:from-teal-600 hover:to-cyan-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 group"
                           >
                             <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
                             <span>Add Meeting Link</span>
