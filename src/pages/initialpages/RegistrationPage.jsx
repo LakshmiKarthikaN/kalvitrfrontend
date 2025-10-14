@@ -15,14 +15,7 @@ const RegisterPage = () => {
   const [emailVerificationMessage, setEmailVerificationMessage] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
-  const [lastVerifiedEmail, setLastVerifiedEmail] = useState("");
-  console.log("=== REGISTRATION DATA ===");
-  console.log("Email:", values.email);
-  console.log("Full Name:", values.fullName);
-  console.log("Password Length:", values.password?.length);
-  console.log("Mobile:", values.mobileNumber, "Matches pattern:", /^[0-9]{10}$/.test(values.mobileNumber || ""));
-  console.log("Graduation Year:", values.yearOfGraduation, "Valid:", values.yearOfGraduation >= 1990 && values.yearOfGraduation <= 2030);
-  console.log("Resume:", values.resume?.name, values.resume?.type);
+  const [lastVerifiedEmail, setLastVerifiedEmail] = useState("")
   const handleEmailVerification = async (email) => {
     if (!email || !email.includes('@') || email === lastVerifiedEmail) {
       return;
@@ -100,7 +93,14 @@ const RegisterPage = () => {
 
             console.log("=== REGISTRATION FORM SUBMISSION ===");
             console.log("Form values:", values);
-            
+            ;
+  console.log("=== REGISTRATION DATA ===");
+  console.log("Email:", values.email);
+  console.log("Full Name:", values.fullName);
+  console.log("Password Length:", values.password?.length);
+  console.log("Mobile:", values.mobileNumber, "Matches pattern:", /^[0-9]{10}$/.test(values.mobileNumber || ""));
+  console.log("Graduation Year:", values.yearOfGraduation, "Valid:", values.yearOfGraduation >= 1990 && values.yearOfGraduation <= 2030);
+  console.log("Resume:", values.resume?.name, values.resume?.type);
             setSubmitting(true);
             
             try {
