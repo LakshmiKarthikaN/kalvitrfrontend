@@ -125,39 +125,49 @@ const RegisterPage = () => {
                       email: values.email
                     }
                   });
-                }, 2000);
+                }, 4000);
                 
               } else {
-                const errorMessage = res.data?.message || "Registration completion failed";
-                setErrors({ submit: errorMessage });
-                setStatus({ error: errorMessage });
+                const errorMessage = res.data?.message || "Registration failed";
+  console.log("Registration failed with response:", res.data);
+  setErrors({ submit: errorMessage });
+  setStatus({ error: errorMessage });
               }
             } catch (err) {
               console.error("Registration error:", err);
-              
+            
               let errorMessage = "Registration failed. Please try again.";
-              
+            
+              // Check if error has a response from server
               if (err.response) {
-                errorMessage = err.response.data?.message || 
-                             err.response.data?.error || 
-                             `Server error (${err.response.status})`;
-                
-                if (err.response.status === 400) {
+                const status = err.response.status;
+                const data = err.response.data || {};
+            
+                if (status === 400) {
                   errorMessage = "Invalid data provided. Please check all fields.";
-                } else if (err.response.status === 409) {
+                } else if (status === 409) {
                   errorMessage = "Email already registered. Please login instead.";
-                } else if (err.response.status === 500) {
+                } else if (status === 500) {
                   errorMessage = "Server error. Please try again later.";
+                } else {
+                  // Fallback to server-provided message if available
+                  errorMessage = data.message || data.error || `Server error (${status})`;
                 }
+            
               } else if (err.request) {
+                // Request was made but no response received
                 errorMessage = "Network error. Please check your connection.";
+              } else if (err.message) {
+                // Something else went wrong
+                errorMessage = err.message;
               }
-              
+            
               setErrors({ submit: errorMessage });
               setStatus({ error: errorMessage });
             } finally {
               setSubmitting(false);
             }
+            
           }}
         >
           {({ isSubmitting, setFieldValue, values, status, errors }) => (
