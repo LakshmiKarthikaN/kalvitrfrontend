@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Formik, Form } from "formik";
 import { Button, InputField } from "../../components/common";
 import { AuthLayout } from "../../components/layout";
-import * as Yup from "yup";
 import { verifyEmailApi, completeRegistrationApi } from "../../api/authApi";
 import { useNavigate } from "react-router-dom";
 import { registrationSchema } from "../../utils/validatorslogic/Validators";
-
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -15,7 +13,8 @@ const RegisterPage = () => {
   const [emailVerificationMessage, setEmailVerificationMessage] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
-  const [lastVerifiedEmail, setLastVerifiedEmail] = useState("")
+  const [lastVerifiedEmail, setLastVerifiedEmail] = useState("");
+
   const handleEmailVerification = async (email) => {
     if (!email || !email.includes('@') || email === lastVerifiedEmail) {
       return;
@@ -83,30 +82,38 @@ const RegisterPage = () => {
             yearOfGraduation: "",
             resume: null,
           }}
-          registrationSchema={registrationSchema}
+          validationSchema={registrationSchema}
           onSubmit={async (values, { setSubmitting, setErrors, setStatus, validateForm }) => {
-            // Check if email is verified before allowing submission
-            const errors = await validateForm();
-            if(Object.keys(errors).length > 0){
-              console.error("Validation errors :",errors);
-              setErrors({submit: "Please fix all validation errors before submitting"});
-              return;
-            }
-            if (!isEmailVerified) {
-              setErrors({ submit: "Please verify your email before submitting the form." });
+            console.log("=== FORM SUBMISSION STARTED ===");
+            
+            // Validate form first
+            const validationErrors = await validateForm();
+            console.log("Validation errors:", validationErrors);
+            
+            if (Object.keys(validationErrors).length > 0) {
+              console.error("❌ Validation failed:", validationErrors);
+              setErrors({ submit: "Please fix all validation errors before submitting" });
+              setStatus({ error: "Please check all fields for errors" });
               return;
             }
 
-            console.log("=== REGISTRATION FORM SUBMISSION ===");
-            console.log("Form values:", values);
-            ;
-  console.log("=== REGISTRATION DATA ===");
-  console.log("Email:", values.email);
-  console.log("Full Name:", values.fullName);
-  console.log("Password Length:", values.password?.length);
-  console.log("Mobile:", values.mobileNumber, "Matches pattern:", /^[0-9]{10}$/.test(values.mobileNumber || ""));
-  console.log("Graduation Year:", values.yearOfGraduation, "Valid:", values.yearOfGraduation >= 1990 && values.yearOfGraduation <= 2030);
-  console.log("Resume:", values.resume?.name, values.resume?.type);
+            // Check email verification
+            if (!isEmailVerified) {
+              console.error("❌ Email not verified");
+              setErrors({ submit: "Please verify your email before submitting the form." });
+              setStatus({ error: "Email verification required" });
+              return;
+            }
+
+            console.log("✅ All validations passed, proceeding with submission");
+            console.log("=== REGISTRATION DATA ===");
+            console.log("Email:", values.email);
+            console.log("Full Name:", values.fullName);
+            console.log("Password Length:", values.password?.length);
+            console.log("Mobile:", values.mobileNumber, "Matches pattern:", /^[0-9]{10}$/.test(values.mobileNumber || ""));
+            console.log("Graduation Year:", values.yearOfGraduation, "Valid:", values.yearOfGraduation >= 1990 && values.yearOfGraduation <= 2030);
+            console.log("Resume:", values.resume?.name, values.resume?.type);
+
             setSubmitting(true);
             
             try {
@@ -117,67 +124,90 @@ const RegisterPage = () => {
               formData.append("mobileNumber", values.mobileNumber);
               formData.append("collegeName", values.collegeName);
               formData.append("yearOfGraduation", values.yearOfGraduation.toString());
+              
+              console.log("=== FormData Contents ===");
               for (let [key, value] of formData.entries()) {
                 console.log(`${key}:`, value);
-            }
+              }
+
               if (values.resume) {
                 formData.append("resume", values.resume);
                 console.log("Resume attached:", values.resume.name);
               }
 
-              console.log("Making API call to complete registration...");
+              console.log("🚀 Making API call to complete registration...");
               const res = await completeRegistrationApi(formData);
 
+              console.log("📥 API Response:", res);
+              console.log("Status:", res.status);
+              console.log("Data:", res.data);
+
               if (res.status === 200 && res.data && res.data.success) {
-                console.log("Registration completed successfully");
-                setStatus({ success: true, message: res.data.message || "Registration successful!" });
+                console.log("✅ Registration completed successfully!");
+                setStatus({ 
+                  success: true, 
+                  message: res.data.message || "Registration successful! You can now login." 
+                });
                 
-              
+                // Show success message for 3 seconds, then allow manual navigation
+                setTimeout(() => {
+                  console.log("You can now click 'Login here' to proceed");
+                }, 3000);
                 
               } else {
                 const errorMessage = res.data?.message || "Registration failed";
-  console.log("Registration failed with response:", res.data);
-  setErrors({ submit: errorMessage });
-  setStatus({ error: errorMessage });
+                console.log("❌ Registration failed with response:", res.data);
+                setErrors({ submit: errorMessage });
+                setStatus({ error: errorMessage });
               }
             } catch (err) {
-              console.error("Registration error:", err);
+              console.error("=== REGISTRATION ERROR ===");
+              console.error("Full error object:", err);
+              console.error("Error response:", err.response);
+              console.error("Error status:", err.response?.status);
+              console.error("Error data:", err.response?.data);
+              console.error("Error message:", err.message);
             
               let errorMessage = "Registration failed. Please try again.";
             
-              // Check if error has a response from server
               if (err.response) {
                 const status = err.response.status;
                 const data = err.response.data || {};
             
+                console.error(`❌ Server responded with status ${status}:`, data);
+            
                 if (status === 400) {
-                  errorMessage = "Invalid data provided. Please check all fields.";
+                  errorMessage = data.message || "Invalid data provided. Please check all fields.";
+                } else if (status === 403) {
+                  errorMessage = data.message || "Access forbidden. Please verify your email first.";
                 } else if (status === 409) {
                   errorMessage = "Email already registered. Please login instead.";
                 } else if (status === 500) {
                   errorMessage = "Server error. Please try again later.";
                 } else {
-                  // Fallback to server-provided message if available
                   errorMessage = data.message || data.error || `Server error (${status})`;
                 }
             
               } else if (err.request) {
-                // Request was made but no response received
+                console.error("❌ No response received:", err.request);
                 errorMessage = "Network error. Please check your connection.";
-              } else if (err.message) {
-                // Something else went wrong
+              } else {
+                console.error("❌ Error setting up request:", err.message);
                 errorMessage = err.message;
               }
             
               setErrors({ submit: errorMessage });
               setStatus({ error: errorMessage });
+              
+              // Stay on the page - DO NOT REDIRECT
+              console.error("❌ Registration failed. Staying on page to show error.");
             } finally {
               setSubmitting(false);
+              console.log("=== SUBMISSION COMPLETE ===");
             }
-            
           }}
         >
-          {({ isSubmitting, setFieldValue, values, status, errors }) => (
+          {({ isSubmitting, setFieldValue, values, status, errors, touched }) => (
             <Form className="space-y-4">
               {/* Email Field with Automatic Verification */}
               <div className="space-y-2">
@@ -216,7 +246,7 @@ const RegisterPage = () => {
                 )}
               </div>
 
-              {/* All Other Fields - Always Visible */}
+              {/* All Other Fields */}
               <InputField
                 name="fullName"
                 type="text"
@@ -224,7 +254,6 @@ const RegisterPage = () => {
                 placeholder="Full Name"
                 disabled={!isEmailVerified && emailVerificationStatus !== ""}
                 onFocus={(e) => {
-                  // Trigger email verification when user focuses on fullName
                   const emailValue = values.email.trim();
                   if (emailValue && emailValue.includes('@') && !isEmailVerified && !isVerifyingEmail) {
                     handleEmailVerification(emailValue);
@@ -298,54 +327,50 @@ const RegisterPage = () => {
                   }}
                 />
 
-<label
-  htmlFor="resume-upload"
-  className={`cursor-pointer 
-    w-full 
-    sm:w-3/4        /* 75% width on small screens and above */
-    md:w-1/2        /* 50% width on medium screens and above */
-    lg:w-1/3        /* 33% width on large screens and above */
-    mx-auto
-  /* Full width on mobile, auto width on larger screens */
-    px-4 py-2 
-    text-gray-700 
-    border border-gray-300 
-    rounded-md 
-    text-center 
-    hover:bg-gray-50 
-    block 
-    ${!isEmailVerified && emailVerificationStatus !== "" 
-      ? "opacity-50 cursor-not-allowed" 
-      : ""}`}
->
-  <span className="text-gray-500 text-sm sm:text-base">
-    Browse Files
-  </span>
-</label>
+                <label
+                  htmlFor="resume-upload"
+                  className={`cursor-pointer w-full sm:w-3/4 md:w-1/2 lg:w-1/3 mx-auto px-4 py-2 text-gray-700 border border-gray-300 rounded-md text-center hover:bg-gray-50 block ${
+                    !isEmailVerified && emailVerificationStatus !== "" 
+                      ? "opacity-50 cursor-not-allowed" 
+                      : ""
+                  }`}
+                >
+                  <span className="text-gray-500 text-sm sm:text-base">
+                    Browse Files
+                  </span>
+                </label>
 
-
-                <p className="text-xs text-gray-500 mt-2 ml-15">
+                <p className="text-xs text-gray-500 mt-2 text-center">
                   {values.resume ? `Selected: ${values.resume.name}` : "Only PDF, DOC, DOCX allowed (Max 5MB)"}
                 </p>
               </div>
 
               {/* Status messages */}
               {status?.success && (
-                <div className="text-green-600 text-sm text-center font-semibold">
-                  {status.message || "Registration successful! Please login to continue"}
+                <div className="bg-green-50 border border-green-200 rounded-md p-4 text-center">
+                  <div className="text-green-600 text-sm font-semibold mb-2">
+                    ✅ {status.message || "Registration successful!"}
+                  </div>
+                  <p className="text-green-600 text-xs">
+                    You can now login with your credentials
+                  </p>
                 </div>
               )}
               
               {status?.error && (
-                <div className="text-red-600 text-sm text-center">
-                  {status.error}
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <div className="text-red-600 text-sm text-center">
+                    ❌ {status.error}
+                  </div>
                 </div>
               )}
 
               {/* Form errors */}
               {errors.submit && (
-                <div className="text-red-600 text-sm text-center">
-                  {errors.submit}
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <div className="text-red-600 text-sm text-center font-medium">
+                    {errors.submit}
+                  </div>
                 </div>
               )}
 
@@ -353,7 +378,6 @@ const RegisterPage = () => {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !isEmailVerified}
-                 
                 >
                   {isSubmitting ? "Processing..." : "Complete Registration"}
                 </Button>
