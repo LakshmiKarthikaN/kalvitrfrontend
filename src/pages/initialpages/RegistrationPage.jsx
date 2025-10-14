@@ -84,8 +84,14 @@ const RegisterPage = () => {
             resume: null,
           }}
           registrationSchema={registrationSchema}
-          onSubmit={async (values, { setSubmitting, setErrors, setStatus }) => {
+          onSubmit={async (values, { setSubmitting, setErrors, setStatus, validateForm }) => {
             // Check if email is verified before allowing submission
+            const errors = await validateForm();
+            if(Object.keys(errors).length > 0){
+              console.error("Validation errors :",errors);
+              setErrors({submit: "Please fix all validation errors before submitting"});
+              return;
+            }
             if (!isEmailVerified) {
               setErrors({ submit: "Please verify your email before submitting the form." });
               return;
