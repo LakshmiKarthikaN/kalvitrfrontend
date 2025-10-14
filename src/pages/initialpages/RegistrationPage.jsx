@@ -83,7 +83,7 @@ const RegisterPage = () => {
             yearOfGraduation: "",
             resume: null,
           }}
-          registrationSchema={registrationSchema}
+          validationSchema={registrationSchema}
           onSubmit={async (values, { setSubmitting, setErrors, setStatus }) => {
             // Check if email is verified before allowing submission
             if (!isEmailVerified) {
@@ -124,18 +124,25 @@ const RegisterPage = () => {
 
               if (res.status === 200 && res.data && res.data.success) {
                 console.log("Registration completed successfully");
-                setStatus({ success: true, message: res.data.message || "Registration successful!" });
+                setStatus({ success: true, message: res.data.message || "Registration successful! You can now login." });
                 
-              
+                // REMOVED: Automatic redirect - user must manually go to login
+                // User can see the success message and click "Login here" link when ready
                 
               } else {
                 const errorMessage = res.data?.message || "Registration failed";
-  console.log("Registration failed with response:", res.data);
-  setErrors({ submit: errorMessage });
-  setStatus({ error: errorMessage });
+                console.log("Registration failed with response:", res.data);
+                setErrors({ submit: errorMessage });
+                setStatus({ error: errorMessage });
               }
             } catch (err) {
-              console.error("Registration error:", err);
+              console.error("=== REGISTRATION ERROR DETAILS ===");
+              console.error("Full error object:", err);
+              console.error("Error message:", err.message);
+              console.error("Error response:", err.response);
+              console.error("Error response data:", err.response?.data);
+              console.error("Error response status:", err.response?.status);
+              console.error("Error request:", err.request);
             
               let errorMessage = "Registration failed. Please try again.";
             
@@ -143,13 +150,16 @@ const RegisterPage = () => {
               if (err.response) {
                 const status = err.response.status;
                 const data = err.response.data || {};
+                
+                console.error("Server returned status:", status);
+                console.error("Server returned data:", data);
             
                 if (status === 400) {
-                  errorMessage = "Invalid data provided. Please check all fields.";
+                  errorMessage = data.message || "Invalid data provided. Please check all fields.";
                 } else if (status === 409) {
-                  errorMessage = "Email already registered. Please login instead.";
+                  errorMessage = data.message || "Email already registered. Please login instead.";
                 } else if (status === 500) {
-                  errorMessage = "Server error. Please try again later.";
+                  errorMessage = data.message || "Server error. Please try again later.";
                 } else {
                   // Fallback to server-provided message if available
                   errorMessage = data.message || data.error || `Server error (${status})`;
@@ -157,11 +167,15 @@ const RegisterPage = () => {
             
               } else if (err.request) {
                 // Request was made but no response received
+                console.error("No response received from server");
                 errorMessage = "Network error. Please check your connection.";
               } else if (err.message) {
                 // Something else went wrong
+                console.error("Request setup error:", err.message);
                 errorMessage = err.message;
               }
+              
+              console.error("Final error message shown to user:", errorMessage);
             
               setErrors({ submit: errorMessage });
               setStatus({ error: errorMessage });
@@ -326,7 +340,7 @@ const RegisterPage = () => {
               {/* Status messages */}
               {status?.success && (
                 <div className="text-green-600 text-sm text-center font-semibold">
-                  {status.message || "Registration successful! Please login to continue"}
+                  {status.message || "Registration successful! Please login to continue."}
                 </div>
               )}
               
