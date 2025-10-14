@@ -55,7 +55,6 @@ function App() {
         
 
         {/* Catch-all redirect to login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       
 
       </Routes>
