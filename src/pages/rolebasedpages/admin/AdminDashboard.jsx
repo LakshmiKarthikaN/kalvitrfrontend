@@ -27,17 +27,29 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const AdminDashboard = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const [users, setUsers] = useState([]);
   const [selectedMenu, setSelectedMenu] = useState("Dashboard");
   const [portalStatus, setPortalStatus] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const [successMessage, setSuccessMessage] = useState("");
   const handleMenuToggle = () => {
-    setIsSidebarCollapsed(prev => !prev);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setIsSidebarCollapsed(prev => !prev);
+    }
   };
+  const handleMobileClose = () => {
+    setMobileOpen(false);
+  };
+
   const drawerWidth = 240;
   const collapsedDrawerWidth = 60;
 
