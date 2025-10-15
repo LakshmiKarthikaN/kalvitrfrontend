@@ -744,6 +744,7 @@ const HRDashboard = () => {
   
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentUser] = useState({
