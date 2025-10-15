@@ -103,14 +103,17 @@ api.interceptors.response.use(
     console.error("URL:", error.config?.url);
  
     const config = error.config || {};
+    const url = config.url || '';
 
     if (
       error.response &&
       (error.response.status === 401 || error.response.status === 403) &&
-      !config.url.includes("/auth/reset-password") &&
-      !config.url.includes("/auth/validate-reset-token")
+      !url.includes("/auth/reset-password") &&
+      !url.includes("/auth/validate-reset-token") &&
+      !url.includes("/students/verify-email") &&
+      !url.includes("/students/complete-registration")  // ✅ Added this
     ) {
-     // console.log("Unauthorized - Clearing local storage and redirecting");
+      console.log("Unauthorized - Clearing local storage and redirecting");
       localStorage.clear();
       window.location.href = "/login";
     }

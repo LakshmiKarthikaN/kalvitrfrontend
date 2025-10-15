@@ -179,7 +179,9 @@ const RegisterPage = () => {
                 if (status === 400) {
                   errorMessage = data.message || "Invalid data provided. Please check all fields.";
                 } else if (status === 403) {
-                  errorMessage = data.message || "Access forbidden. Please verify your email first.";
+                  errorMessage = "⚠️ ACCESS DENIED: The backend is blocking this request. Check security configuration.";
+                  console.error("🔴 403 FORBIDDEN - This is a backend security issue!");
+                  console.error("🔴 The endpoint /api/students/complete-registration might not be in permitAll()");
                 } else if (status === 409) {
                   errorMessage = "Email already registered. Please login instead.";
                 } else if (status === 500) {
@@ -199,8 +201,8 @@ const RegisterPage = () => {
               setErrors({ submit: errorMessage });
               setStatus({ error: errorMessage });
               
-              // Stay on the page - DO NOT REDIRECT
-              console.error("❌ Registration failed. Staying on page to show error.");
+              // ✅ STAY ON PAGE - DO NOT REDIRECT
+              console.error("❌ Registration failed. Error displayed to user. NOT redirecting.");
             } finally {
               setSubmitting(false);
               console.log("=== SUBMISSION COMPLETE ===");
