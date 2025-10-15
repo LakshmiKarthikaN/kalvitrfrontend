@@ -59,7 +59,7 @@ const LoginPage = () => {
                     navigate("/rolebasedpages/hr/hrdashboard");
                     break;
                   case "FACULTY":
-                    navigate("/rolebasedpages/faculty/facultydashboard");
+                    navigate("/interviewpaenlist-portal");
                     break;
                   case "ZSGS":
                     navigate("/student-profile");
