@@ -34,7 +34,7 @@ import {
   AlertCircle,
   RefreshCw
 } from "lucide-react";
-import { Box } from '@mui/material';
+import { Box, useMediaQuery, useTheme } from '@mui/material';
 import InterviewManagement from './interviewmanagement/InterviewManagement';
 import LogoImg from "../../../assets/LogoImg.png";
 
@@ -738,17 +738,29 @@ const Dashboard = () => {
 
 // Main HR Dashboard Component
 const HRDashboard = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [currentUser] = useState({
     name: localStorage.getItem('userName') || 'HR Admin',
     role: 'hr',
     avatar: 'H'
   });
   const handleMenuToggle = () => {
-    setIsSidebarCollapsed(prev => !prev);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setIsSidebarCollapsed(prev => !prev);
+    }
   };
 
+  const handleMobileClose = () => {
+    setMobileOpen(false);
+  };
   const drawerWidth = 240;
   const collapsedDrawerWidth = 60;
   const renderContent = () => {
@@ -783,36 +795,51 @@ const HRDashboard = () => {
         return <Dashboard />;
     }
   };
+ 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <Sidebar
-        role="hr"
-        onMenuSelect={setSelectedMenu}
-        selectedMenu={selectedMenu}
-        isCollapsed={isSidebarCollapsed}
-      />
-      
-      <Box
-        component="main"
+    <>
+      {/* Mobile Drawer - Temporary */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onMobileClose}
+        ModalProps={{
+          keepMounted: true, // Better mobile performance
+        }}
         sx={{
-          flexGrow: 1,
-          width: `calc(100% - ${isSidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)`,
-          transition: 'width 0.3s ease, margin 0.3s ease',
-          minHeight: '100vh',
-          backgroundColor: '#f5f5f5',
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            backgroundColor: '#0f766e',
+            color: 'white',
+          },
         }}
       >
-        <Header 
-          role={currentUser.role} 
-          user={currentUser} 
-          onMenuToggle={handleMenuToggle}
-        />
+        {drawerContent}
+      </Drawer>
 
-        <Box sx={{ p: 3 }}>
-          {renderContent()}
-        </Box>
-      </Box>
-    </Box>
+      {/* Desktop Drawer - Permanent */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          width: isCollapsed ? collapsedDrawerWidth : drawerWidth,
+          flexShrink: 0,
+          transition: 'width 0.3s ease',
+          '& .MuiDrawer-paper': {
+            width: isCollapsed ? collapsedDrawerWidth : drawerWidth,
+            boxSizing: 'border-box',
+            backgroundColor: '#0f766e',
+            color: 'white',
+            transition: 'width 0.3s ease',
+            overflowX: 'hidden',
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
   
 };
