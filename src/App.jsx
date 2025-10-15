@@ -6,7 +6,7 @@ import AdminDashboard from "./pages/rolebasedpages/admin/AdminDashboard.jsx";
 import HrDashboard from "./pages/rolebasedpages/hr/HrDashboard.jsx";
 import FacultyDashboard from "./pages/rolebasedpages/Faculty/FacultyDashboard.jsx";
 import ResetPassword from "./pages/initialpages/ResetPassword.jsx";
-import InterviewPanelist from "./pages/rolebasedpages/hr/interviewmanagement/interviewpanelistpage/InterviewPanelist.jsx";
+// import InterviewPanelist from "./pages/rolebasedpages/hr/interviewmanagement/interviewpanelistpage/InterviewPanelist.jsx";
 import StudentAvailabilityPage from "./pages/rolebasedpages/hr/interviewmanagement/availabiltypages/StudentAvailability.jsx";
 import InterviewPanelistPortal from "./pages/rolebasedpages/hr/interviewmanagement/availabiltypages/InterviewPanelistPortal.jsx";
 //import ProtectedRoute from './components/ProtectedRoute';
