@@ -797,49 +797,92 @@ const HRDashboard = () => {
   };
  
   return (
-    <>
-      {/* Mobile Drawer - Temporary */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={onMobileClose}
-        ModalProps={{
-          keepMounted: true, // Better mobile performance
-        }}
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Use the Sidebar component */}
+      <Sidebar
+        role="hr"
+        onMenuSelect={setSelectedMenu}
+        selectedMenu={selectedMenu}
+        isCollapsed={isSidebarCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={handleMobileClose}
+      />
+      
+      {/* Main Content Area */}
+      <Box
+        component="main"
         sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            backgroundColor: '#0f766e',
-            color: 'white',
+          flexGrow: 1,
+          width: {
+            xs: '100%',
+            md: `calc(100% - ${isSidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)`
           },
+          transition: 'width 0.3s ease, margin 0.3s ease',
+          minHeight: '100vh',
+          backgroundColor: '#f5f5f5',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        {drawerContent}
-      </Drawer>
+        {/* Header */}
+        <Header 
+          role={currentUser.role} 
+          user={currentUser.name} 
+          onMenuToggle={handleMenuToggle}
+        />
 
-      {/* Desktop Drawer - Permanent */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: 'none', md: 'block' },
-          width: isCollapsed ? collapsedDrawerWidth : drawerWidth,
-          flexShrink: 0,
-          transition: 'width 0.3s ease',
-          '& .MuiDrawer-paper': {
-            width: isCollapsed ? collapsedDrawerWidth : drawerWidth,
-            boxSizing: 'border-box',
-            backgroundColor: '#0f766e',
-            color: 'white',
-            transition: 'width 0.3s ease',
-            overflowX: 'hidden',
-          },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
-    </>
+        {/* Content with responsive padding */}
+        <Box 
+          sx={{ 
+            p: { xs: 2, sm: 2.5, md: 3 },
+            flexGrow: 1,
+            overflow: 'auto'
+          }}
+        >
+          {loading && (
+            <Box
+              sx={{
+                position: 'fixed',
+                inset: 0,
+                bgcolor: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1300,
+              }}
+            >
+              <Box
+                sx={{
+                  bgcolor: 'white',
+                  borderRadius: 2,
+                  p: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    border: '2px solid #0f766e',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+                <span className="text-sm md:text-base">Processing...</span>
+              </Box>
+            </Box>
+          )}
+          {renderContent()}
+        </Box>
+      </Box>
+    </Box>
   );
   
 };
