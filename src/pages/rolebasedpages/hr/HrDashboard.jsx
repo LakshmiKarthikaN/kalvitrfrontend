@@ -34,7 +34,7 @@ import {
   AlertCircle,
   RefreshCw
 } from "lucide-react";
-import { Box } from '@mui/material';
+import { Box, useMediaQuery, useTheme } from '@mui/material';
 import InterviewManagement from './interviewmanagement/InterviewManagement';
 import LogoImg from "../../../assets/LogoImg.png";
 
@@ -738,7 +738,13 @@ const Dashboard = () => {
 
 // Main HR Dashboard Component
 const HRDashboard = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentUser] = useState({
     name: localStorage.getItem('userName') || 'HR Admin',
@@ -746,9 +752,15 @@ const HRDashboard = () => {
     avatar: 'H'
   });
   const handleMenuToggle = () => {
-    setIsSidebarCollapsed(prev => !prev);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setIsSidebarCollapsed(prev => !prev);
+    }
   };
-
+ const handleMobileClose = () => {
+    setMobileOpen(false);
+  };
   const drawerWidth = 240;
   const collapsedDrawerWidth = 60;
   const renderContent = () => {
@@ -786,29 +798,74 @@ const HRDashboard = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       <Sidebar
-        role="hr"
+        role="admin"
         onMenuSelect={setSelectedMenu}
         selectedMenu={selectedMenu}
         isCollapsed={isSidebarCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={handleMobileClose}
       />
       
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${isSidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)`,
+          width: {
+            xs: '100%',
+            md: `calc(100% - ${isSidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)`
+          },
           transition: 'width 0.3s ease, margin 0.3s ease',
           minHeight: '100vh',
           backgroundColor: '#f5f5f5',
         }}
       >
         <Header 
-          role={currentUser.role} 
-          user={currentUser} 
+          role={"admin"} 
+          user={"Admin"} 
           onMenuToggle={handleMenuToggle}
         />
 
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 0, md: 3 } }}>
+          {loading && (
+            <Box
+              sx={{
+                position: 'fixed',
+                inset: 0,
+                bgcolor: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1300,
+              }}
+            >
+              <Box
+                sx={{
+                  bgcolor: 'white',
+                  borderRadius: 2,
+                  p: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    border: '2px solid #0f766e',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+                <span>Processing...</span>
+              </Box>
+            </Box>
+          )}
           {renderContent()}
         </Box>
       </Box>
