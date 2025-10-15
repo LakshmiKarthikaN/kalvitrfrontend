@@ -744,11 +744,11 @@ const HRDashboard = () => {
   
   const [selectedMenu, setSelectedMenu] = useState('Dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentUser] = useState({
-    name: localStorage.getItem('userName') || 'HR Admin',
+    name: localStorage.getItem('userName') || 'HR',
     role: 'hr',
     avatar: 'H'
   });
