@@ -586,13 +586,18 @@ const fetchUsers = async () => {
         onMenuSelect={setSelectedMenu}
         selectedMenu={selectedMenu}
         isCollapsed={isSidebarCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={handleMobileClose}
       />
       
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${isSidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)`,
+          width: {
+            xs: '100%',
+            md: `calc(100% - ${isSidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)`
+          },
           transition: 'width 0.3s ease, margin 0.3s ease',
           minHeight: '100vh',
           backgroundColor: '#f5f5f5',
@@ -604,7 +609,47 @@ const fetchUsers = async () => {
           onMenuToggle={handleMenuToggle}
         />
 
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 0, md: 3 } }}>
+          {loading && (
+            <Box
+              sx={{
+                position: 'fixed',
+                inset: 0,
+                bgcolor: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1300,
+              }}
+            >
+              <Box
+                sx={{
+                  bgcolor: 'white',
+                  borderRadius: 2,
+                  p: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    border: '2px solid #0f766e',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+                <span>Processing...</span>
+              </Box>
+            </Box>
+          )}
           {renderContent()}
         </Box>
       </Box>
