@@ -1,12 +1,27 @@
 import axios from "axios";
 
+// ✅ Smart API URL detection based on environment
+const getApiUrl = () => {
+  // Check if running in development (localhost)
+  const isDevelopment = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+  
+  // Use environment variable or fallback to localhost for dev
+  if (isDevelopment) {
+    return import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+  }
+  
+  // Production: use environment variable or default production URL
+  return import.meta.env.VITE_API_URL || 'https://www.kalvi-track.co.in/api';
+};
 
-let apiUrl = import.meta.env.VITE_API_URL;
-console.log("API Base URL:", apiUrl);
+const apiUrl = getApiUrl();
+console.log("🌍 Environment:", window.location.hostname);
+console.log("🔗 API Base URL:", apiUrl);
 
 export const api = axios.create({
   baseURL: apiUrl,
-  timeout: 120000, // Increased to 120 seconds
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json'
   }
