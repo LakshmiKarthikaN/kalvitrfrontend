@@ -1,23 +1,37 @@
 import axios from "axios";
 
-// ✅ Smart API URL detection based on environment
 const getApiUrl = () => {
-  // Check if running in development (localhost)
-  const isDevelopment = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1';
-  
-  // Use environment variable or fallback to localhost for dev
-  if (isDevelopment) {
-    return import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+  // Priority 1: Check explicit environment variable
+  if (import.meta.env.VITE_API_URL) {
+    console.log("📝 Using VITE_API_URL from env:", import.meta.env.VITE_API_URL);
+    return import.meta.env.VITE_API_URL;
   }
   
-  // Production: use environment variable or default production URL
-  return import.meta.env.VITE_API_URL || 'https://www.kalvi-track.co.in/api';
+  // Priority 2: Auto-detect based on hostname
+  const hostname = window.location.hostname;
+  const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
+  
+  if (isDevelopment) {
+    const devUrl = 'http://localhost:8080/api';
+    console.log("🏠 Development mode detected, using:", devUrl);
+    return devUrl;
+  }
+  
+  // Priority 3: Production default
+  const prodUrl = 'https://www.kalvi-track.co.in/api';
+  console.log("🌐 Production mode, using:", prodUrl);
+  return prodUrl;
 };
 
 const apiUrl = getApiUrl();
-console.log("🌍 Environment:", window.location.hostname);
+
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("🚀 API Configuration Initialized");
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("🌍 Current Hostname:", window.location.hostname);
+console.log("📍 Environment:", import.meta.env.MODE);
 console.log("🔗 API Base URL:", apiUrl);
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
 export const api = axios.create({
   baseURL: apiUrl,
@@ -26,9 +40,6 @@ export const api = axios.create({
     'Content-Type': 'application/json'
   }
 });
-console.log("API Base URL:", import.meta.env.VITE_API_URL);
-console.log("api url", import.meta.env.VITE_API_URL);
-// Add this enhanced response interceptor to your authApi.js
 api.interceptors.response.use(
   (response) => {
     console.log("✅ API Success:", {
