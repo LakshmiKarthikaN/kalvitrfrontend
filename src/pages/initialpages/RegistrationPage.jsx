@@ -7,6 +7,16 @@ import { useNavigate } from "react-router-dom";
 import { registrationSchema } from "../../utils/validatorslogic/Validators";
 
 const RegisterPage = () => {
+  useEffect(() => {
+    console.log('🧹 Clearing all existing tokens for fresh registration');
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    sessionStorage.clear();
+  }, []);
   const navigate = useNavigate();
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [emailVerificationStatus, setEmailVerificationStatus] = useState("");

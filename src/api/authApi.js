@@ -437,6 +437,14 @@ export const studentLoginApi = (credentials) => {
 };
 
 export const registerApi = (data) => {
+  console.log('🧹 Clearing all existing tokens for fresh registration');
+  localStorage.removeItem('token');
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('userName');
+  sessionStorage.clear();
   console.log("Registration attempt");
   if (data instanceof FormData) {
     return api.post("/auth/register", data, {
@@ -708,6 +716,7 @@ export const studentApi = {
     return api.post("/students/upload-csv", formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        'Authorization': undefined 
       }
     });
   },
