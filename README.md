@@ -20,7 +20,7 @@
 </p>
 <p align="center">
   <a href="https://github.com/YourGitHubUsername/kalvitr" target="_blank">
-    <b>backend Repository</b>
+    <b>Backend Repository</b>
   </a>
   &nbsp;&nbsp;
   <a href="https://github.com/YourGitHubUsername/kalvitr/issues" target="_blank">
@@ -183,7 +183,7 @@ Limited access to only interview-related activities.
 
 Access ends once interview feedback is submitted.
 
-## 🔁 Functional Flow Summary
+## Functional Flow Summary
 
 | **Role** | **Responsibilities** |
 |-----------|----------------------|
@@ -195,7 +195,7 @@ Access ends once interview feedback is submitted.
 | **Student** | Updates daily progress, completes assignments/tests, and participates in evaluations. |
 | **Panelist** | Conducts interviews and reports candidate evaluations. |
 
-## 💻 Tech Stack
+## Tech Stack
 
 | **Layer** | **Technologies** |
 |------------|------------------|
