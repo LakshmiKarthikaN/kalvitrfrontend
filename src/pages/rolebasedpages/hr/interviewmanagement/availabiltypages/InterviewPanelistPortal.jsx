@@ -362,7 +362,7 @@ const InterviewPanelistPortal = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 relative">
         <div className="flex space-x-2 bg-white/90 backdrop-blur-lg p-2 rounded-2xl shadow-xl border border-emerald-100">
           {[
-            { id: 'availability', label: 'Set Availability', icon: Calendar, color: 'emerald' },
+            { id: 'availability', label: 'Set Availability', icon: Calendar, color: 'teal' },
             { id: 'students', label: 'Assigned Students', icon: Users, color: 'teal' },
             { id: 'current', label: 'Current Availability', icon: Clock, color: 'teal' },
           ].map(({ id, label, icon: Icon, color }) => (
@@ -412,10 +412,10 @@ const InterviewPanelistPortal = () => {
             
             <div className="mb-8 relative">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                <div className="p-3 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl shadow-lg">
                   <Calendar className="text-white" size={24} />
                 </div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                   Set Your Availability
                 </h2>
               </div>
@@ -606,8 +606,8 @@ const InterviewPanelistPortal = () => {
                           </span>
                         </div>
                         <div className="flex items-center space-x-6 text-sm text-gray-600">
-                          <span>⏰ {slot.startTime} - {slot.endTime}</span>
-                          <span>📝 Duration: {slot.slotDurationMinutes || 60} mins</span>
+                          <span> {slot.startTime} - {slot.endTime}</span>
+                          <span>Duration: {slot.slotDurationMinutes || 60} mins</span>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                             slot.isBooked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                           }`}>
@@ -654,11 +654,11 @@ const InterviewPanelistPortal = () => {
             <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-emerald-200 to-teal-100 rounded-full opacity-15 translate-y-16 translate-x-16"></div>
             
             <div className="flex items-center space-x-4 mb-8 relative">
-              <div className="p-4 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl shadow-lg transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+              <div className="p-4 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl shadow-lg transform -rotate-3 hover:rotate-0 transition-transform duration-300">
                 <Users className="text-white" size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                   Assigned Students
                 </h2>
                 <div className="flex items-center space-x-2 mt-1">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Search, CheckCircle, ChevronLeft, ChevronRight, ArrowLeft, X, Plus } from 'lucide-react';
+import { Calendar, Clock, User, Search, CheckCircle, ChevronLeft, ChevronRight, ArrowLeft, X, Plus,AlertCircle } from 'lucide-react';
 // TODO: Uncomment this line in your actual project:
- import { api,availabilityApi, interviewerApi, studentApi } from '../../../../api/authApi';
+ import { api,availabilityApi, interviewerApi, studentApi,interviewApi} from '../../../../api/authApi';
 
 const HRInterviewScheduler = ({ onBack }) => {
   const [currentWeek, setCurrentWeek] = useState(0);
@@ -11,7 +11,8 @@ const HRInterviewScheduler = ({ onBack }) => {
   const [showSlotModal, setShowSlotModal] = useState(false);
   const [selectedDaySlots, setSelectedDaySlots] = useState(null);
   const [slotDuration, setSlotDuration] = useState(60);
-
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isScheduling, setIsScheduling] = useState(false);
   const [students, setStudents] = useState([]);
   const [interviewers, setInterviewers] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -19,9 +20,17 @@ const HRInterviewScheduler = ({ onBack }) => {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: '' });
+    }, 3000);
+  };
   useEffect(() => {
     fetchAllData();
+    loadScheduledInterviews();
+
   }, []);
 
   const fetchAllData = async () => {
@@ -32,11 +41,12 @@ const HRInterviewScheduler = ({ onBack }) => {
       // REPLACE WITH YOUR ACTUAL API CALLS:
       const studentsResponse = await studentApi.getStudentsByRole('PMIS');
       const pmisStudents = studentsResponse.data.data || studentsResponse.data || [];
-      
+    
+      // ✅ ADD THESE TWO LINES HERE (right after the API call)
       const activeStudents = pmisStudents
         .filter(s => s.status === 'ACTIVE' && s.emailVerified)
         .map(s => ({
-          id: s.studentId,
+          id: s.id,
           name: s.fullName,
           email: s.email,
           role: s.role,
@@ -45,7 +55,7 @@ const HRInterviewScheduler = ({ onBack }) => {
         }));
       
       setStudents(activeStudents);
-
+      
       // Fetch all users and filter for interviewers only
       const usersResponse = await api.get("/users");
       
@@ -62,67 +72,77 @@ const HRInterviewScheduler = ({ onBack }) => {
         allUsers = [];
       }
       
-      console.log('Total users fetched:', allUsers.length);
-      console.log('Raw response structure:', Object.keys(usersResponse.data || {}));
       
       // Filter only INTERVIEW_PANELIST and FACULTY roles
+      // Filter only INTERVIEW_PANELIST and FACULTY roles
       const interviewerList = allUsers
-        .filter(user => {
-          const isActiveStatus = user.status === 'ACTIVE';
-          const isInterviewerRole = user.role === 'INTERVIEW_PANELIST' || user.role === 'FACULTY';
-          return isActiveStatus && isInterviewerRole;
-        })
-        .map(p => {
-          const interviewerId = p.interviewerId || p.interviewer_id;
-          const userId = p.userId || p.user_id || p.id;
-          
-          return {
-            id: userId,
-            interviewerId: interviewerId,
-            name: p.fullName || p.full_name,
-            email: p.email,
-            role: p.role
-          };
-        });
-      
-      console.log('Active interviewers (INTERVIEW_PANELIST + FACULTY):', interviewerList.length);
-      console.log('Breakdown:', {
-        panelists: interviewerList.filter(i => i.role === 'INTERVIEW_PANELIST').length,
-        faculty: interviewerList.filter(i => i.role === 'FACULTY').length
+      .filter(user => {
+        const isActiveStatus = user.status === 'ACTIVE';
+        const isInterviewerRole = user.role === 'INTERVIEW_PANELIST' || user.role === 'FACULTY';
+        return isActiveStatus && isInterviewerRole;
+      })
+      .map(p => {
+        const userId = p.userId || p.user_id || p.id;
+        
+        return {
+          id: userId,
+          userId: userId,
+          name: p.fullName || p.full_name,
+          email: p.email,
+          role: p.role
+        };
+      });
+      const interviewerResponse = await interviewerApi.getAllInterviewers(); // Or whatever your API is
+const actualInterviewers = interviewerResponse.data.data || interviewerResponse.data;
+
+      const userIdToInterviewerIdMap = {};
+      actualInterviewers.forEach(interviewer => {
+        userIdToInterviewerIdMap[interviewer.userId] = interviewer.interviewerId;
       });
       
+
+// Now add interviewerId to your interviewerList
+const enhancedInterviewerList = interviewerList.map(interviewer => ({
+  ...interviewer,
+  interviewerId: userIdToInterviewerIdMap[interviewer.userId]
+}));
+
+setInterviewers(enhancedInterviewerList);
+      
+     
       setInterviewers(interviewerList);
       const slotsResponse = await availabilityApi.getAvailableSlots();
       const slotsData = slotsResponse.data.data || slotsResponse.data || [];
       
-      console.log('Raw slots response:', slotsData);
       
       const formattedSlots = slotsData
-        .flatMap(dayGroup => {
-          // Each dayGroup now contains: {interviewerId, userId, date, totalSlots, slots: [...]}
-          const interviewer = interviewerList.find(i => i.id === dayGroup.userId);
-          
-          if (!interviewer) {
-            console.warn(`⚠️ No interviewer found for userId: ${dayGroup.userId}`);
-            return [];
-          }
-          
-          // Map each individual slot from the slots array
-          return dayGroup.slots.map(slot => ({
-            id: parseInt(slot.availabilityId),
-            interviewerId: dayGroup.userId,
-            interviewerName: dayGroup.interviewerName || interviewer.name,
-            date: dayGroup.date,
-            startTime: slot.startTime.substring(0, 5), // Now safe to use substring
-            endTime: slot.endTime.substring(0, 5),
-            duration: parseInt(slot.duration),
-            notes: dayGroup.notes || ''
-          }));
-        })
-        .filter(slot => slot !== null);
-      
-      console.log('Formatted slots:', formattedSlots.length);
-      setAvailableSlots(formattedSlots);
+  .flatMap(dayGroup => {
+  
+
+    // ✅ Find interviewer by userId (not by id)
+    const interviewer = interviewerList.find(i => i.userId === dayGroup.userId);
+    
+    if (!interviewer) {
+      return [];
+    }
+    
+    // Map each individual slot from the slots array
+    return dayGroup.slots.map(slot => ({
+      id: parseInt(slot.availabilityId),
+      interviewerId: dayGroup.interviewerId, // ✅ Use the interviewerId from API
+      userId: dayGroup.userId, // ✅ Keep userId for reference
+      interviewerName: dayGroup.interviewerName || interviewer.name,
+      date: dayGroup.date,
+      startTime: slot.startTime.substring(0, 5),
+      endTime: slot.endTime.substring(0, 5),
+      duration: parseInt(slot.duration),
+      notes: dayGroup.notes || ''
+    }));
+  })
+  .filter(slot => slot !== null);
+
+console.log("📊 Formatted Slots:", formattedSlots); // ✅ Add this to verify
+setAvailableSlots(formattedSlots);
 
       if (formattedSlots.length > 0) {
         const earliestSlotDate = new Date(Math.min(...formattedSlots.map(s => new Date(s.date))));
@@ -132,10 +152,41 @@ const HRInterviewScheduler = ({ onBack }) => {
       }
 
     } catch (err) {
-      console.error('❌ Error:', err);
       setError(err.response?.data?.message || 'Failed to load data');
     } finally {
       setLoading(false);
+    }
+  };
+  const loadScheduledInterviews = async () => {
+    try {
+      const response = await interviewApi.getAllScheduledInterviews();
+      if (response.data.success) {
+        const formattedInterviews = response.data.data.map(interview => ({
+          id: interview.sessionId,
+          studentId: interview.studentId,
+          studentName: interview.studentName,
+          studentEmail: interview.studentEmail,
+          interviewerId: interview.interviewerId,
+          interviewerName: interview.interviewerName,
+          date: interview.date,
+          startTime: interview.startTime,
+          endTime: interview.endTime,
+          status: interview.status
+        }));
+        
+        setScheduledInterviews(formattedInterviews);
+        
+        // Mark booked slots
+        const booked = formattedInterviews.map(i => ({
+          date: i.date,
+          interviewerId: i.interviewerId,
+          startTime: i.startTime,
+          endTime: i.endTime
+        }));
+        setBookedSlots(booked);
+      }
+    } catch (error) {
+      console.error('Error loading scheduled interviews:', error);
     }
   };
   useEffect(() => {
@@ -151,13 +202,12 @@ const HRInterviewScheduler = ({ onBack }) => {
     let currentDate = new Date(startDate);
     
     // Generate 5 weekdays starting from startDate, skipping weekends
-    while (dates.length < 5) {
-      const dayOfWeek = currentDate.getDay();
+    while (dates.length < 7) {
       
       // Skip Saturday (6) and Sunday (0)
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      
         dates.push(new Date(currentDate));
-      }
+      
       
       // Move to next day
       currentDate.setDate(currentDate.getDate() + 1);
@@ -198,47 +248,29 @@ const HRInterviewScheduler = ({ onBack }) => {
   const formatDate = (date) => {
     return date.toISOString().split('T')[0];
   };
-
   const getAvailabilitySummary = (date, interviewerId) => {
     const dateStr = formatDate(date);
     
-    console.log('🔍 getAvailabilitySummary called:', {
-      dateStr,
-      interviewerId,
-      totalAvailableSlots: availableSlots.length,
-      availableSlotsSample: availableSlots.slice(0, 2)
-    });
-    
-    // Filter slots for this date and interviewer
+    // ✅ Filter by userId (which is stored as interviewerId in your interviewer state)
     const slots = availableSlots.filter(slot => {
       const dateMatch = slot.date === dateStr;
-      const interviewerMatch = slot.interviewerId === interviewerId;
+      const interviewerMatch = slot.userId === interviewerId; // ✅ Changed from slot.interviewerId
       
-      console.log('Checking slot:', {
-        slotDate: slot.date,
-        slotInterviewerId: slot.interviewerId,
-        dateMatch,
-        interviewerMatch,
-        looking_for: { dateStr, interviewerId }
-      });
       
       return dateMatch && interviewerMatch;
     });
     
-    console.log(`Found ${slots.length} slots for ${dateStr}, interviewer ${interviewerId}`);
     
     if (slots.length === 0) return null;
     
-    // Slots are already split by backend, just filter out booked ones
+    // Filter out booked slots
     const availableSlotsList = slots.filter(slot => {
       return !bookedSlots.some(booked => 
         booked.date === dateStr && 
-        booked.interviewerId === interviewerId &&
+        booked.userId === interviewerId && // ✅ Match by userId
         booked.startTime === slot.startTime
       );
     });
-    
-    console.log(`After filtering booked: ${availableSlotsList.length} available`);
     
     return {
       total: availableSlotsList.length,
@@ -258,38 +290,85 @@ const HRInterviewScheduler = ({ onBack }) => {
         dateDisplay: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
         interviewer,
         slots: summary.slots,
-        rawBlocks: summary.rawBlocks
+        rawBlocks: summary.rawBlocks, // ✅ Make sure this includes interviewerId
+        actualInterviewerId: summary.rawBlocks[0]?.interviewerId // ✅ Add this
       });
       setShowSlotModal(true);
     }
   };
-
-  const bookSlot = (slot) => {
-    if (!selectedStudent || !selectedDaySlots) return;
+  const bookSlot = async () => {
+    if (!selectedStudent || !selectedDaySlots || !selectedSlot) {
+      showToast('Please select a student and time slot', 'error');
+      return;
+    }
     
-    const newBooking = {
-      id: Date.now(),
-      studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      studentEmail: selectedStudent.email,
-      interviewerId: selectedDaySlots.interviewer.id,
-      interviewerName: selectedDaySlots.interviewer.name,
-      date: selectedDaySlots.date,
-      startTime: slot.start,
-      endTime: slot.end,
-      status: 'SCHEDULED'
-    };
-    
-    setScheduledInterviews([...scheduledInterviews, newBooking]);
-    setBookedSlots([...bookedSlots, {
-      date: selectedDaySlots.date,
-      interviewerId: selectedDaySlots.interviewer.id,
-      startTime: slot.start,
-      endTime: slot.end
-    }]);
-    
-    setShowSlotModal(false);
-    setSelectedStudent(null);
+    setIsScheduling(true);
+  
+    try {
+      const rawBlock = selectedDaySlots.rawBlocks[0];
+      const actualInterviewerId = rawBlock.interviewerId;
+      
+      if (!selectedStudent.id) {
+        console.error('❌ Student ID is missing:', selectedStudent);
+        showToast('Invalid student selection. Please refresh and try again.', 'error');
+        setIsScheduling(false);
+        return;
+      }
+  
+      // ✅ Find the matching availability slot from rawBlocks
+      const matchingSlot = selectedDaySlots.rawBlocks.find(block => 
+        block.startTime === selectedSlot.start && block.endTime === selectedSlot.end
+      );
+  
+      if (!matchingSlot || !matchingSlot.id) {
+        console.error('❌ Could not find availability ID for slot:', selectedSlot);
+        showToast('Invalid slot selection. Please try again.', 'error');
+        setIsScheduling(false);
+        return;
+      }
+  
+      const scheduleData = {
+        studentId: selectedStudent.id,
+        interviewerId: actualInterviewerId,
+        availabilityId: parseInt(matchingSlot.id), // ✅ Use the id from rawBlocks
+        date: selectedDaySlots.date,
+        startTime: selectedSlot.start,
+        endTime: selectedSlot.end,
+        remarks: ''
+      };
+      
+      console.log('📤 Scheduling interview:', scheduleData);
+      
+      // Call the API to schedule the interview
+      const response = await interviewApi.scheduleInterview(scheduleData);
+      
+      if (response.data.success) {
+        showToast('✅ Interview scheduled successfully!', 'success');
+        
+        // Add to booked slots
+        setBookedSlots([...bookedSlots, {
+          date: selectedDaySlots.date,
+          interviewerId: actualInterviewerId,
+          startTime: selectedSlot.start,
+          endTime: selectedSlot.end
+        }]);
+        
+        // Reset and close
+        setSelectedSlot(null);
+        setShowSlotModal(false);
+        
+        // Refresh data
+        await loadScheduledInterviews();
+        await fetchAllData();
+      } else {
+        showToast(response.data.message || 'Failed to schedule interview', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Error scheduling interview:', error);
+      showToast(error.response?.data?.message || 'Failed to schedule interview. Please try again.', 'error');
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
   const filteredStudents = students.filter(student => {
@@ -299,15 +378,31 @@ const HRInterviewScheduler = ({ onBack }) => {
     return matchesSearch && notScheduled;
   });
 
-  const handleCancelInterview = (scheduleId) => {
-    const schedule = scheduledInterviews.find(si => si.id === scheduleId);
-    if (schedule) {
-      setBookedSlots(bookedSlots.filter(b => 
-        !(b.date === schedule.date && 
-          b.interviewerId === schedule.interviewerId && 
-          b.startTime === schedule.startTime)
-      ));
-      setScheduledInterviews(scheduledInterviews.filter(si => si.id !== scheduleId));
+  const handleCancelInterview = async (scheduleId) => {
+    if (!window.confirm('Are you sure you want to cancel this interview?')) {
+      return;
+    }
+  
+    try {
+      const response = await interviewApi.cancelInterview(scheduleId);
+      
+      if (response.data.success) {
+        const schedule = scheduledInterviews.find(si => si.id === scheduleId);
+        if (schedule) {
+          setBookedSlots(bookedSlots.filter(b => 
+            !(b.date === schedule.date && 
+              b.interviewerId === schedule.interviewerId && 
+              b.startTime === schedule.startTime)
+          ));
+          setScheduledInterviews(scheduledInterviews.filter(si => si.id !== scheduleId));
+        }
+        
+        // Refresh data
+        await fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error cancelling interview:', error);
+      alert(error.response?.data?.message || 'Failed to cancel interview');
     }
   };
 
@@ -349,6 +444,21 @@ const HRInterviewScheduler = ({ onBack }) => {
         <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6 mb-4 border-l-4 border-teal-500">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="w-full md:w-auto">
+            <style>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+      `}</style>
               <button
                 onClick={onBack}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all duration-200 mb-2"
@@ -403,258 +513,220 @@ const HRInterviewScheduler = ({ onBack }) => {
 
         {activeTab === 'schedule' ? (
           <>
-            {/* Mobile Student List */}
-            <div className="lg:hidden mb-6">
-              <div className="bg-white rounded-2xl shadow-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <User className="text-teal-500" size={20} />
+            {/* Horizontal Student Section - Always Above Calendar */}
+            <div className="mb-6">
+              <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <User className="text-teal-500" size={24} />
                     Students ({filteredStudents.length})
                   </h2>
                   {selectedStudent && (
                     <button
                       onClick={() => setSelectedStudent(null)}
-                      className="text-xs px-3 py-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
+                      className="text-xs md:text-sm px-3 py-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
                     >
-                      Clear
+                      Clear Selection
                     </button>
                   )}
                 </div>
-    <div className="mb-4 p-3 bg-teal-50 rounded-lg">
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Slot Duration</label>
-                  <div className="flex gap-2">
-                    {[30, 60, 90].map(duration => (
-                      <button
-                        key={duration}
-                        onClick={() => setSlotDuration(duration)}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                          slotDuration === duration ? 'bg-teal-500 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-teal-100'
-                        }`}
-                      >
-                        {duration}m
-                      </button>
-                    ))}
-                  </div>
-                </div>
-            
 
-                <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
-                    placeholder="Search students..."
+                    placeholder="Search students by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm md:text-base"
                   />
                 </div>
 
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
-                  {filteredStudents.map(student => (
-                    <button
-                      key={student.id}
-                      onClick={() => setSelectedStudent(student)}
-                      className={`flex-shrink-0 w-48 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        selectedStudent?.id === student.id
-                          ? 'bg-gradient-to-r from-teal-100 to-cyan-100 border-teal-400 shadow-lg'
-                          : 'bg-white border-gray-200 hover:border-teal-300 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-800 text-sm leading-tight mb-1">{student.name}</h3>
-                          <p className="text-xs text-gray-600 truncate">{student.email}</p>
-                        </div>
-                        {selectedStudent?.id === student.id && (
-                          <CheckCircle className="text-teal-500 flex-shrink-0 ml-2" size={16} />
-                        )}
+                {/* Horizontal Scrollable Student Cards */}
+                <div className="relative">
+                <div className="flex gap-3 md:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-teal-300 scrollbar-track-gray-100">
+                {filteredStudents.map(student => (
+                     <div
+                     key={student.id}
+                     onClick={() => setSelectedStudent(student)}
+                     className={`relative overflow-hidden cursor-pointer transition-all duration-300 rounded-lg group flex-shrink-0 w-72 sm:w-80 ${
+                       selectedStudent?.id === student.id
+                         ? 'ring-2 ring-teal-500 shadow-xl scale-105'
+                         : 'hover:shadow-lg hover:scale-102'
+                     }`}
+                   >
+                      {/* Background Pattern */}
+                      
+                      <div className={` inset-0 opacity-10 ${
+                        selectedStudent?.id === student.id ? 'bg-teal-500' : 'bg-gray-200'
+                      }`}>
+                        <div className="absolute inset-0" style={{
+                          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+                          backgroundSize: '20px 20px'
+                        }}></div>
                       </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-teal-500 text-white inline-block">{student.role}</span>
-                    </button>
+
+                      <div className={`relative p-4 ${
+                        selectedStudent?.id === student.id
+                          ? 'bg-white'
+                          : 'bg-white group-hover:bg-gray-50'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          {/* Left Border Accent */}
+                          <div className={`w-1 h-16 rounded-full transition-all duration-300 ${
+                            selectedStudent?.id === student.id
+                              ? 'bg-gradient-to-b from-teal-500 to-cyan-500'
+                              : 'bg-gray-300 group-hover:bg-teal-400'
+                          }`}></div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h3 className={`font-bold text-sm mb-1 truncate ${
+                                  selectedStudent?.id === student.id ? 'text-teal-700' : 'text-gray-800'
+                                }`}>
+                                  {student.name}
+                                </h3>
+                                <p className="text-xs text-gray-600 truncate mb-2">{student.email}</p>
+                              </div>
+                              
+                              {selectedStudent?.id === student.id && (
+                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center">
+                                  <CheckCircle className="text-white" size={14} />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-block text-xs px-2 py-1 rounded font-medium ${
+                                selectedStudent?.id === student.id
+                                  ? 'bg-teal-100 text-teal-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {student.role}
+                              </span>
+                              {selectedStudent?.id === student.id && (
+                                <span className="text-xs text-teal-600 font-semibold">
+                                  • Active
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Accent Line */}
+                      <div className={`h-1 transition-all duration-300 ${
+                        selectedStudent?.id === student.id
+                          ? 'bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-500'
+                          : 'bg-transparent group-hover:bg-gray-300'
+                      }`}></div>
+                    </div>
                   ))}
                 </div>
-
+                </div>
                 {selectedStudent && (
-                  <div className="mt-4 p-3 bg-teal-50 rounded-lg border-2 border-teal-200">
-                    <p className="text-sm font-semibold text-teal-800 mb-1">Student Selected</p>
-                    <p className="text-xs text-teal-600">Click on available slots in the calendar to schedule</p>
+                  <div className="mt-4 p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border-2 border-teal-200">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="text-teal-600" size={20} />
+                      <div>
+                        <p className="text-sm font-semibold text-teal-800">
+                          {selectedStudent.name} selected
+                        </p>
+                        <p className="text-xs text-teal-600">
+                          Click on available slots in the calendar below to schedule an interview
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {filteredStudents.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <User size={48} className="mx-auto mb-3 text-gray-300" />
+                    <p className="text-base md:text-lg font-semibold">No students found</p>
+                    <p className="text-sm">Try adjusting your search criteria</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Desktop Student Panel */}
-              <div className="hidden lg:block lg:col-span-3">
-                <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <User className="text-teal-500" size={24} />
-                      Students
-                    </h2>
-                    {selectedStudent && (
-                      <button
-                        onClick={() => setSelectedStudent(null)}
-                        className="text-xs px-3 py-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="mb-4 p-3 bg-teal-50 rounded-lg">
-                    <label className="text-sm font-semibold text-gray-700 mb-2 block">Slot Duration</label>
-                    <div className="flex gap-2">
-                      {[30, 60, 90].map(duration => (
-                        <button
-                          key={duration}
-                          onClick={() => setSlotDuration(duration)}
-                          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                            slotDuration === duration ? 'bg-teal-500 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-teal-100'
-                          }`}
-                        >
-                          {duration}m
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      placeholder="Search students..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
-                    {filteredStudents.map(student => (
-                      <button
-                      
-                        key={student.id}
-                        onClick={() => setSelectedStudent(student)}
-                        className={`p-4 rounded-lg border-2 w-full cursor-pointer transition-all duration-200 ${
-                          selectedStudent?.id === student.id
-                            ? 'bg-gradient-to-r from-teal-100 to-cyan-100 border-teal-400 shadow-lg scale-105'
-                            : 'bg-white border-gray-200 hover:border-teal-300 hover:shadow-md'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-800 truncate">{student.name}</h3>
-                            <p className="text-sm text-gray-600 truncate">{student.email}</p>
-                            <span className="text-xs px-2 py-1 rounded-full bg-teal-500 text-white inline-block mt-2">{student.role}</span>
-                          </div>
-                          {selectedStudent?.id === student.id && (
-                            <CheckCircle className="text-teal-500  ml-2" size={20} />
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  {selectedStudent && (
-                    <div className="mt-4 p-4 bg-teal-50 rounded-lg border-2 border-teal-200">
-                      <p className="text-sm font-semibold text-teal-800 mb-1">Student Selected</p>
-                      <p className="text-xs text-teal-600">Click on available slots in the calendar to schedule</p>
-                    </div>
-                  )}
-                </div>
+            {/* Calendar Grid */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
+              <div className="flex items-center justify-between mb-6">
+                <button
+                  onClick={() => setCurrentWeek(currentWeek - 1)}
+                  className="p-2 rounded-lg hover:bg-teal-50 text-teal-600 transition-colors"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                  {weekDates[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </h2>
+                <button
+                  onClick={() => setCurrentWeek(currentWeek + 1)}
+                  className="p-2 rounded-lg hover:bg-teal-50 text-teal-600 transition-colors"
+                >
+                  <ChevronRight size={24} />
+                </button>
               </div>
 
-              {/* Calendar Grid */}
-              <div className="lg:col-span-9">
-                <div className="bg-white rounded-2xl shadow-lg p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <button
-                      onClick={() => setCurrentWeek(currentWeek - 1)}
-                      className="p-2 rounded-lg hover:bg-teal-50 text-teal-600 transition-colors"
-                    >
-                      <ChevronLeft size={24} />
-                    </button>
-                    <h2 className="text-xl font-bold text-gray-800">
-                      {weekDates[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </h2>
-                    <button
-                      onClick={() => setCurrentWeek(currentWeek + 1)}
-                      className="p-2 rounded-lg hover:bg-teal-50 text-teal-600 transition-colors"
-                    >
-                      <ChevronRight size={24} />
-                    </button>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse min-w-[800px]">
-                      <thead>
-                        <tr>
-                          <th className="border border-gray-200 bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-3 text-left font-semibold min-w-[150px]">
-                            Interviewer
-                          </th>
-                          {weekDates.map((date, idx) => (
-                            <th key={idx} className="border border-gray-200 bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-3 text-center font-semibold min-w-[140px]">
-                              <div>{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                              <div className="text-sm font-normal">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {interviewers.map(interviewer => (
-                          <tr key={interviewer.id}>
-                            <td className="border border-gray-200 p-4 bg-gray-50 font-semibold">
-                              <div className="text-gray-800">{interviewer.name}</div>
-                              <div className="text-xs text-gray-600 mt-1">{interviewer.role}</div>
-                            </td>
-                            {weekDates.map((date, idx) => {
-                              const summary = getAvailabilitySummary(date, interviewer.id);
-                               
-  console.log('Calendar cell check:', {
-    date: formatDate(date),
-    interviewerId: interviewer.id,
-    interviewerName: interviewer.name,
-    summary: summary,
-    hasSlots: summary && summary.total > 0
-  });
-                              const hasSlots = summary && summary.total > 0;
-                              
-                              return (
-                                <td 
-                                  key={idx} 
-                                  className={`border border-gray-200 p-3 align-top min-h-[100px] transition-all ${
-                                    hasSlots && selectedStudent ? 'bg-teal-50 cursor-pointer hover:bg-teal-100' : hasSlots ? 'bg-gray-50' : 'bg-white'
-                                  }`}
-                                  onClick={() => hasSlots && selectedStudent && handleCellClick(date, interviewer)}
-                                >
-                                  {hasSlots ? (
-                                    <div className="text-center">
-                                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-500 text-white font-bold text-lg mb-2">
-                                        {summary.total}
-                                      </div>
-                                      <p className="text-xs text-teal-700 font-semibold">{summary.total} slot{summary.total !== 1 ? 's' : ''}</p>
-                                      <p className="text-xs text-gray-500 mt-1">
-                                        {summary.rawBlocks[0].startTime} - {summary.rawBlocks[summary.rawBlocks.length - 1].endTime}
-                                      </p>
-                                      {selectedStudent && (
-                                        <button className="mt-2 text-xs px-3 py-1 bg-teal-500 text-white rounded-full hover:bg-teal-600">
-                                          Select Slot
-                                        </button>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="text-center text-gray-400 text-sm">No slots</div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse min-w-[800px]">
+                  <thead>
+                    <tr>
+                      <th className="border border-gray-200 bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-3 text-left font-semibold min-w-[150px]">
+                        Interviewer
+                      </th>
+                      {weekDates.map((date, idx) => (
+                        <th key={idx} className="border border-gray-200 bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-3 text-center font-semibold min-w-[140px]">
+                          <div>{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                          <div className="text-sm font-normal">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {interviewers.map(interviewer => (
+                      <tr key={interviewer.id}>
+                        <td className="border border-gray-200 p-4 bg-gray-50 font-semibold">
+                          <div className="text-gray-800">{interviewer.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">{interviewer.role}</div>
+                        </td>
+                        {weekDates.map((date, idx) => {
+                          const summary = getAvailabilitySummary(date, interviewer.id);
+                          const hasSlots = summary && summary.total > 0;
+                          
+                          return (
+                            <td 
+                              key={idx} 
+                              className={`border border-gray-200 p-3 align-top min-h-[100px] transition-all ${
+                                hasSlots && selectedStudent ? 'bg-teal-50 cursor-pointer hover:bg-teal-100' : hasSlots ? 'bg-gray-50' : 'bg-white'
+                              }`}
+                              onClick={() => hasSlots && selectedStudent && handleCellClick(date, interviewer)}
+                            >
+                              {hasSlots ? (
+                                <div className="text-center">
+                                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-500 text-white font-bold text-lg mb-2">
+                                    {summary.total}
+                                  </div>
+                                  <p className="text-xs text-teal-700 font-semibold">{summary.total} slot{summary.total !== 1 ? 's' : ''}</p>
+                                  {selectedStudent && (
+                                    <button className="mt-2 text-xs px-3 py-1 bg-teal-500 text-white rounded-full hover:bg-teal-600">
+                                      Select Slot
+                                    </button>
                                   )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                                </div>
+                              ) : (
+                                <div className="text-center text-gray-400 text-sm">No slots</div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </>
@@ -711,70 +783,136 @@ const HRInterviewScheduler = ({ onBack }) => {
         )}
       </div>
 
-      {/* Slot Selection Modal */}
-      {showSlotModal && selectedDaySlots && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">
-              <div className="flex items-start justify-between">
+    {/* Slot Selection Modal */}
+    {showSlotModal && selectedDaySlots && (
+  <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-lg sm:max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-2xl font-bold mb-2">Select Time Slot</h3>
+            <p className="text-teal-100">{selectedDaySlots.dateDisplay}</p>
+            <p className="text-sm text-teal-100 mt-1">
+              Interviewer: {selectedDaySlots.interviewer.name}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setShowSlotModal(false);
+              setSelectedSlot(null);
+            }}
+            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+        {selectedStudent && (
+          <div className="bg-teal-50 border-2 border-teal-200 rounded-lg p-4 mb-6">
+            <p className="text-sm font-semibold text-teal-800 mb-2">Scheduling for:</p>
+            <p className="font-bold text-gray-800">{selectedStudent.name}</p>
+            <p className="text-sm text-gray-600">{selectedStudent.email}</p>
+          </div>
+        )}
+
+        {/* Slot Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {selectedDaySlots.slots.map((slot, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedSlot(slot)}
+              className={`p-4 rounded-lg border-2 transition-all duration-200 text-left group ${
+                selectedSlot?.start === slot.start && selectedSlot?.end === slot.end
+                  ? 'border-teal-500 bg-teal-50 shadow-lg ring-2 ring-teal-200'
+                  : 'border-teal-300 bg-white hover:bg-teal-50 hover:border-teal-500 hover:shadow-lg'
+              }`}
+            >
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">Select Time Slot</h3>
-                  <p className="text-teal-100">{selectedDaySlots.dateDisplay}</p>
-                  <p className="text-sm text-teal-100 mt-1">
-                    Interviewer: {selectedDaySlots.interviewer.name}
+                  <div className="flex items-center gap-2 text-teal-700 font-bold text-lg">
+                    <Clock size={20} />
+                    {slot.start} - {slot.end}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {selectedDaySlots.rawBlocks[0]?.duration || slotDuration} minutes
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowSlotModal(false)}
-                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-                >
-                  <X size={24} />
-                </button>
+                {selectedSlot?.start === slot.start && selectedSlot?.end === slot.end ? (
+                  <CheckCircle
+                    className="text-teal-500"
+                    size={24}
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-teal-300 group-hover:border-teal-500 transition-colors"></div>
+                )}
               </div>
-            </div>
-
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              {selectedStudent && (
-                <div className="bg-teal-50 border-2 border-teal-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm font-semibold text-teal-800 mb-2">Scheduling for:</p>
-                  <p className="font-bold text-gray-800">{selectedStudent.name}</p>
-                  <p className="text-sm text-gray-600">{selectedStudent.email}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {selectedDaySlots.slots.map((slot, index) => (
-                  <button
-                    key={index}
-                    onClick={() => bookSlot(slot)}
-                    className="p-4 rounded-lg border-2 border-teal-300 bg-white hover:bg-teal-50 hover:border-teal-500 hover:shadow-lg transition-all duration-200 text-left group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 text-teal-700 font-bold text-lg">
-                          <Clock size={20} />
-                          {slot.start} - {slot.end}
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">
-            {/* Duration is already in the slot */}
-            {selectedDaySlots.rawBlocks[0]?.duration || slotDuration} minutes
-          </p>                      </div>
-                      <Plus className="text-teal-500 group-hover:scale-110 transition-transform" size={24} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {selectedDaySlots.slots.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock size={48} className="mx-auto mb-4 text-gray-300" />
-                  <p>All slots for this day have been booked</p>
-                </div>
-              )}
-            </div>
-          </div>
+            </button>
+          ))}
         </div>
+
+        {/* No Slots */}
+        {selectedDaySlots.slots.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <Clock size={48} className="mx-auto mb-4 text-gray-300" />
+            <p>All slots for this day have been booked</p>
+          </div>
+        )}
+
+        {/* Schedule Button - Shows only when slot is selected */}
+        {selectedSlot && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={bookSlot}
+              disabled={isScheduling}
+              className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isScheduling ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Scheduling...
+                </>
+              ) : (
+                <>
+                  <Calendar size={20} />
+                  Schedule Interview
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Toast Notification */}
+{toast.show && (
+  <div className="fixed top-4 right-4 z-[60] animate-slide-in">
+    <div className={`flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl ${
+      toast.type === 'success' 
+        ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+        : 'bg-gradient-to-r from-red-500 to-rose-500'
+    } text-white min-w-[300px]`}>
+      {toast.type === 'success' ? (
+        <CheckCircle size={24} className="flex-shrink-0" />
+      ) : (
+        <AlertCircle size={24} className="flex-shrink-0" />
       )}
+      <p className="flex-1 font-medium">{toast.message}</p>
+      <button
+        onClick={() => setToast({ show: false, message: '', type: '' })}
+        className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition-colors flex-shrink-0"
+      >
+        <X size={18} />
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

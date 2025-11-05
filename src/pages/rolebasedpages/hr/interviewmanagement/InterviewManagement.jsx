@@ -21,7 +21,10 @@ import {
   UserPlus,
   Calendar as ScheduleIcon,
   X,
-  EyeOff
+  EyeOff,
+  Video,           // ← ADD THIS
+  Building2,       // ← ADD THIS (if you want to use it later)
+  FileText 
 } from 'lucide-react';
 import { panelistApi } from '../../../../api/authApi';
 import ScheduleInterviewModal from './ScheduleInterviewModal';
@@ -82,7 +85,10 @@ const InterviewManagement = () => {
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPanelistModal, setShowPanelistModal] = useState(false);
-  
+  const [interviews, setInterviews] = useState([]);
+  const [selectedInterview, setSelectedInterview] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -90,6 +96,22 @@ const InterviewManagement = () => {
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 5000);
+  };
+  const fetchInterviews = async () => {
+    try {
+      console.log("📅 Fetching scheduled interviews...");
+      const response = await apiCall('/interviews/scheduled');
+      
+      if (response.success && response.data) {
+        setInterviews(response.data);
+        console.log("✅ Interviews fetched:", response.data.length);
+      } else {
+        throw new Error(response.message || 'Failed to fetch interviews');
+      }
+    } catch (error) {
+      console.error('Error fetching interviews:', error);
+      showNotification('Failed to fetch interviews: ' + error.message, 'error');
+    }
   };
 
   // Fetch panelists (FACULTY and INTERVIEW_PANELIST users)
@@ -130,50 +152,15 @@ const InterviewManagement = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    setErrors({});
-    
     try {
-      console.log("Starting to fetch all data...");
-      
-      // Test authentication first
-      const token = localStorage.getItem('token');
-      const userRole = localStorage.getItem('userRole');
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please login again.');
-      }
-      
-      console.log("Current user role:", userRole);
-      
-      // Check if user has required permissions
-      const allowedRoles = ['ADMIN', 'HR', 'FACULTY'];
-      if (!allowedRoles.includes(userRole)) {
-        throw new Error(`Access denied. Your role (${userRole}) doesn't have permission to access this data.`);
-      }
-      
-      // Fetch panelists
-      await fetchPanelists();
-      
+      await Promise.all([
+        fetchInterviews(),
+        fetchPanelists()
+      ]);
       showNotification('Data loaded successfully!', 'success');
-
     } catch (error) {
-      console.error('Critical error in fetchAllData:', error);
-      
-      // Handle specific error types
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        showNotification('Session expired. Please login again.', 'error');
-        // Clear auth and redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole'); 
-        localStorage.removeItem('userEmail');
-        window.location.href = '/login';
-      } else if (error.message.includes('403') || error.message.includes('Access denied')) {
-        showNotification('Access denied. You don\'t have permission to view this data.', 'error');
-      } else {
-        showNotification('Failed to fetch data: ' + error.message, 'error');
-      }
-      
-      setErrors({ general: error.message });
+      console.error('Error fetching data:', error);
+      showNotification('Failed to fetch data: ' + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -182,7 +169,54 @@ const InterviewManagement = () => {
   useEffect(() => {
     fetchAllData();
   }, []);
+  const handleCancelInterview = async (sessionId) => {
+    if (!confirm('Are you sure you want to cancel this interview?')) {
+      return;
+    }
 
+    try {
+      const response = await apiCall(`/interviews/${sessionId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.success) {
+        showNotification('Interview cancelled successfully!', 'success');
+        await fetchInterviews();
+      }
+    } catch (error) {
+      console.error('Error cancelling interview:', error);
+      showNotification('Failed to cancel interview: ' + error.message, 'error');
+    }
+  };
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+  const formatTime = (timeString) => {
+    if (!timeString) return 'N/A';
+    return timeString.substring(0, 5); // HH:MM format
+  };
+
+  // Get status badge color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'SCHEDULED':
+        return 'bg-blue-100 text-blue-800';
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-800';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800';
+      case 'IN_PROGRESS':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
   const handleAddPanelist = async (panelistData) => {
     try {
       // Use the panelistApi directly instead of interviewApi
@@ -194,7 +228,16 @@ const InterviewManagement = () => {
       showNotification(error.message || 'Failed to add panelist', 'error');
     }
   };
-
+  const filteredInterviews = interviews.filter(interview => {
+    const matchesSearch = 
+      interview.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      interview.studentEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      interview.interviewerName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
   // Filter panelists based on search term and status
   const filteredPanelists = panelists.filter(panelist => {
     const matchesSearch = panelist.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -282,7 +325,7 @@ const InterviewManagement = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Interviews
+            Interviews ({filteredInterviews.length})
           </button>
           <button
             onClick={() => setActiveTab('panelists')}
@@ -297,13 +340,172 @@ const InterviewManagement = () => {
         </nav>
       </div>
 
-      {/* Content based on active tab */}
       {activeTab === 'interviews' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          {/* Interviews content placeholder */}
-          <div className="text-center py-8">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">Interview scheduling coming soon...</p>
+          {/* Filters */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Scheduled Interviews
+              </h3>
+              <span className="text-sm text-gray-500">
+                Total: {filteredInterviews.length}
+              </span>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by student or interviewer..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="ALL">All Status</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interviewer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredInterviews.map((interview) => (
+                  <tr key={interview.sessionId} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900">
+                          {interview.studentName}
+                        </div>
+                        <div className="text-sm text-gray-500 flex items-center mt-1">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {interview.studentEmail}
+                        </div>
+                        {interview.studentMobile && (
+                          <div className="text-sm text-gray-500 flex items-center mt-1">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {interview.studentMobile}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900">
+                          {interview.interviewerName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {interview.interviewerEmail}
+                        </div>
+                        <span className={`inline-flex px-2 py-1 mt-1 text-xs font-semibold rounded-full w-fit ${
+                          interview.interviewerRole === 'FACULTY' ? 'bg-blue-100 text-blue-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}>
+                          {interview.interviewerRole === 'FACULTY' ? 'Faculty' : 'Interview Panelist'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                          {formatDate(interview.date)}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                          {formatTime(interview.startTime)} - {formatTime(interview.endTime)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(interview.status)}`}>
+                        {interview.status}
+                      </span>
+                    </td>
+                    {/* <td className="px-6 py-4">
+                      {interview.meetingLink ? (
+                        <a
+                          href={interview.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          <Video className="h-4 w-4 mr-1" />
+                          Join Meeting
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-400">Not set</span>
+                      )}
+                    </td> */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedInterview(interview);
+                            setShowDetailsModal(true);
+                          }}
+                          className="text-teal-600 hover:text-teal-900 transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        {interview.status === 'SCHEDULED' && (
+                          <>
+                            <button 
+                              className="text-blue-600 hover:text-blue-900 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleCancelInterview(interview.sessionId)}
+                              className="text-red-600 hover:text-red-900 transition-colors"
+                              title="Cancel"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredInterviews.length === 0 && (
+              <div className="text-center py-12">
+                <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-xl text-gray-500 mb-2">No interviews found</p>
+                <p className="text-gray-400 mb-4">
+                  {searchTerm || statusFilter !== 'ALL' ? 
+                    'Try adjusting your search or filter criteria.' : 
+                    'No interviews have been scheduled yet.'
+                  }
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -473,9 +675,103 @@ const InterviewManagement = () => {
           </div>
         </div>
       )}
-
+ {showDetailsModal && selectedInterview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-start">
+                <h2 className="text-2xl font-bold text-gray-900">Interview Details</h2>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
     
-
+            <div className="p-6 space-y-6">
+              {/* Student Info */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Student Information</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <p className="text-sm"><span className="font-medium">Name:</span> {selectedInterview.studentName}</p>
+                  <p className="text-sm"><span className="font-medium">Email:</span> {selectedInterview.studentEmail}</p>
+                  {selectedInterview.studentMobile && (
+                    <p className="text-sm"><span className="font-medium">Mobile:</span> {selectedInterview.studentMobile}</p>
+                  )}
+                  {selectedInterview.studentCollege && (
+                    <p className="text-sm"><span className="font-medium">College:</span> {selectedInterview.studentCollege}</p>
+                  )}
+                </div>
+              </div>
+                 {/* Interviewer Info */}
+                 <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Interviewer Information</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <p className="text-sm"><span className="font-medium">Name:</span> {selectedInterview.interviewerName}</p>
+                  <p className="text-sm"><span className="font-medium">Email:</span> {selectedInterview.interviewerEmail}</p>
+                  <p className="text-sm"><span className="font-medium">Role:</span> {selectedInterview.interviewerRole}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Interview Schedule</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <p className="text-sm"><span className="font-medium">Date:</span> {formatDate(selectedInterview.date)}</p>
+                  <p className="text-sm"><span className="font-medium">Time:</span> {formatTime(selectedInterview.startTime)} - {formatTime(selectedInterview.endTime)}</p>
+                  <p className="text-sm">
+                    <span className="font-medium">Status:</span> 
+                    <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedInterview.status)}`}>
+                      {selectedInterview.status}
+                    </span>
+                  </p>
+                  {selectedInterview.meetingLink && (
+                    <p className="text-sm">
+                      <span className="font-medium">Meeting Link:</span>
+                      <a href={selectedInterview.meetingLink} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline">
+                        Join Meeting
+                      </a>
+                    </p>
+                  )}
+                  {selectedInterview.remarks && (
+                    <p className="text-sm"><span className="font-medium">Remarks:</span> {selectedInterview.remarks}</p>
+                  )}
+                  {selectedInterview.interviewResult && (
+                    <p className="text-sm"><span className="font-medium">Result:</span> {selectedInterview.interviewResult}</p>
+                  )}
+                </div>
+              </div>
+              {selectedInterview.createdAt && (
+                <div className="text-sm text-gray-500">
+                  <span className="font-medium">Scheduled on:</span> {new Date(selectedInterview.createdAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              {selectedInterview.status === 'SCHEDULED' && (
+                <button
+                  onClick={() => {
+                    handleCancelInterview(selectedInterview.sessionId);
+                    setShowDetailsModal(false);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Cancel Interview
+                </button>
+              )}
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+  
       <AddPanelistModal
         isOpen={showPanelistModal}
         onClose={() => setShowPanelistModal(false)}
