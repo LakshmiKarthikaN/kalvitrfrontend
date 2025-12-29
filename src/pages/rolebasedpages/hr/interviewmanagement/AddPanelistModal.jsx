@@ -1,5 +1,87 @@
  import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
+const studentAPI = {
+  uploadStudentCSV: async (file, uploadedBy) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('uploadedBy', uploadedBy);
+
+    const response = await fetch(`${API_BASE}/students/upload-csv`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Upload failed');
+    }
+
+    return await response.json();
+  },
+
+  getStudentStatistics: async () => {
+    const response = await fetch(`${API_BASE}/students/statistics`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch statistics');
+    }
+
+    return await response.json();
+  },
+
+  getAllStudents: async () => {
+    const response = await fetch(`${API_BASE}/students`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch students');
+    }
+
+    return await response.json();
+  },
+  createStudentManually: async (email, role) => {
+    // New API endpoint for manual student creation
+    const response = await fetch('/api/students/create-manual', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ email, role })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create student');
+    }
+    
+    return await response.json();
+  },
+
+  getIncompleteRegistrations: async () => {
+    const response = await fetch(`${API_BASE}/students/incomplete`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch incomplete registrations');
+    }
+
+    return await response.json();
+  }
+};
 const AddPanelistModal = ({ isOpen, onClose, onSubmit }) => {
    const [formData, setFormData] = useState({
       fullName: '',

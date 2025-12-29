@@ -72,7 +72,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userEmail');
-      window.location.href = '/login';
+      
     }
     
     return Promise.reject(error);
@@ -140,7 +140,7 @@ api.interceptors.response.use(
     ) {
       console.log("Unauthorized - Clearing local storage and redirecting");
       localStorage.clear();
-      window.location.href = "/login";
+      
     }
 
     return Promise.reject(error);
@@ -191,29 +191,30 @@ export const loginApi = async (credentials) => {
   try {
     console.log("🔄 Attempting login...");
     const response = await api.post("/auth/login", credentials);
-    
+
     if (response.data.success && response.data.token) {
       const token = response.data.token;
-      
-      // Just store it - don't validate immediately
+      const user = response.data.user || {};
+
       localStorage.setItem("token", token);
-      localStorage.setItem("userRole", response.data.role || '');
-      localStorage.setItem("userEmail", response.data.email || '');
-      localStorage.setItem("userId", response.data.userId || '');
-      localStorage.setItem("userName", response.data.name || '');
-      
-      console.log("✅ Login successful - Role:", response.data.role);
+      localStorage.setItem("userRole", user.role || '');
+      localStorage.setItem("userEmail", user.email || '');
+      localStorage.setItem("userId", user.id || '');
+      localStorage.setItem("userName", user.fullName || '');
+
+      console.log("✅ Login successful - Role:", user.role);
       console.log("✅ Token stored, length:", token.length);
     } else {
       console.log("❌ Login failed:", response.data.message);
     }
-    
+
     return response;
   } catch (error) {
     console.error("❌ Login failed:", error.response?.data?.message || error.message);
     throw error;
   }
 };
+
 export const safeAtob = (str) => {
   try {
     if (!str || typeof str !== 'string') {
@@ -342,6 +343,7 @@ export const safeGetItem = (key) => {
   }
 };
 
+// In authApi.js - isAuthenticated function
 export const isAuthenticated = () => {
   try {
     const token = localStorage.getItem("token");
@@ -392,7 +394,7 @@ export const adminLoginApi = async (credentials) => {
       localStorage.setItem("userRole", response.data.role || '');
       localStorage.setItem("userEmail", response.data.email || '');
       localStorage.setItem("userId", response.data.userId || '');
-      localStorage.setItem("userName", response.data.name || '');
+      localStorage.setItem("userName", response.data.fullName || '');
       
       console.log("✅ Admin login successful, role:", response.data.role);
     }
@@ -504,6 +506,7 @@ export const interviewerApi = {
     }
   }
 };
+
 export const panelistApi = {
   // Create a new panelist (using user creation endpoint)
   createPanelist: async (panelistData) => {
@@ -621,17 +624,80 @@ export const availabilityApi = {
   },
 
   // Get assigned students for interviewer
-  getAssignedStudents: async () => {
+getAssignedStudents: async () => {
+  try {
+    console.log("👨‍🎓 Fetching assigned students");
+    const response = await api.get("/interviews/panelist/assigned-students");
+    console.log("✅ Assigned students fetched:", response.data?.data?.length || 0);
+    return response;
+  } catch (error) {
+    console.error("❌ Error fetching assigned students:", error);
+    throw new Error(error.response?.data?.message || "Failed to fetch assigned students");
+  }
+},
+
+addMeetingLink: async (sessionId, meetingLink) => {
+  try {
+    console.log("🔗 Adding meeting link for session:", sessionId);
+    console.log("Current role:", localStorage.getItem('userRole'));
+    console.log("Has token:", !!localStorage.getItem('token'));
+    
+    // Create request payload
+    const payload = { meetingLink };
+    
+    // Make API call with explicit error handling
+    const response = await api.put(
+      `/interviews/panelist/add-meeting-link/${sessionId}`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    console.log("✅ Meeting link added successfully:", response.data);
+    return response;
+  } catch (error) {
+    console.error("❌ Error adding meeting link:", error);
+    console.error("Response status:", error.response?.status);
+    console.error("Response data:", error.response?.data);
+    console.error("Request URL:", error.config?.url);
+    
+    // Don't clear auth on 403/401 for this specific endpoint
+    // Let the component handle it
+    throw new Error(error.response?.data?.message || "Failed to add meeting link");
+  }
+},
+
+submitFeedback: async (sessionId, result, remarks) => {
     try {
-      console.log("👥 Fetching assigned students");
-      const response = await api.get("/panelists/assigned-students");
-      console.log("✅ Assigned students fetched:", response.data?.data?.length || 0);
+      console.log("📝 Submitting feedback for session:", sessionId);
+      console.log("Current role:", localStorage.getItem('userRole'));
+      
+      const response = await api.put(
+        `/interviews/panelist/submit-feedback/${sessionId}`,
+        { result, remarks },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log("✅ Feedback submitted successfully");
       return response;
     } catch (error) {
-      console.error("❌ Error fetching assigned students:", error);
-      throw new Error(error.response?.data?.message || "Failed to fetch assigned students");
+      console.error("❌ Error submitting feedback:", error);
+      console.error("Response status:", error.response?.status);
+      console.error("Response data:", error.response?.data);
+      
+      throw new Error(error.response?.data?.message || "Failed to submit feedback");
     }
   },
+
 
   // Update availability slot
   updateAvailability: async (availabilityId, timeSlot) => {

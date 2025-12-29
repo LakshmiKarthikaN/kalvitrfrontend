@@ -196,26 +196,46 @@ const InterviewPanelistPortal = () => {
 
   const addMeetingLink = async (sessionId) => {
     const link = prompt('Enter meeting link:');
-    if (link) {
+    if (link && link.trim()) {
       try {
-        // TODO: Implement API call to add meeting link
-        // await interviewApi.addMeetingLink(sessionId, link);
+        setIsLoading(true);
+        const response = await availabilityApi.addMeetingLink(sessionId, link);
         
-        // For now, update local state
-        setAssignedStudents(prev => 
-          prev.map(student => 
-            student.sessionId === sessionId 
-              ? { ...student, meetingLink: link, status: 'LINK_ADDED' }
-              : student
-          )
-        );
-        showMessage('Meeting link added successfully!', 'success');
+        if (response.data.success) {
+          showMessage('Meeting link added successfully!', 'success');
+          await loadData(); // Reload data to show updated status
+        }
       } catch (error) {
-        showMessage('Failed to add meeting link', 'error');
+        console.error('Error adding meeting link:', error);
+        showMessage(error.response?.data?.message || 'Failed to add meeting link', 'error');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
-
+  const submitFeedback = async () => {
+    try {
+      setIsLoading(true);
+      
+      const response = await availabilityApi.submitFeedback(
+        feedbackForm.sessionId,
+        feedbackForm.result,
+        feedbackForm.remarks
+      );
+      
+      if (response.data.success) {
+        showMessage('Feedback submitted successfully!', 'success');
+        setShowFeedbackModal(false);
+        setFeedbackForm({ sessionId: null, remarks: '', result: '' });
+        await loadData(); // Reload data to show updated status
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      showMessage(error.response?.data?.message || 'Failed to submit feedback', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const openFeedbackModal = (student) => {
     setFeedbackForm({
       sessionId: student.sessionId,
@@ -225,31 +245,7 @@ const InterviewPanelistPortal = () => {
     setShowFeedbackModal(true);
   };
 
-  const submitFeedback = async () => {
-    try {
-      // TODO: Implement API call to submit feedback
-      // await interviewApi.submitFeedback(feedbackForm);
-      
-      // For now, update local state
-      setAssignedStudents(prev => 
-        prev.map(student => 
-          student.sessionId === feedbackForm.sessionId
-            ? { 
-                ...student, 
-                result: feedbackForm.result,
-                remarks: feedbackForm.remarks,
-                status: 'COMPLETED'
-              }
-            : student
-        )
-      );
-      setShowFeedbackModal(false);
-      setFeedbackForm({ sessionId: null, remarks: '', result: '' });
-      showMessage('Feedback submitted successfully!', 'success');
-    } catch (error) {
-      showMessage('Failed to submit feedback', 'error');
-    }
-  };
+ 
 
   const deleteAvailabilitySlot = async (availabilityId) => {
     if (!window.confirm('Are you sure you want to delete this availability slot?')) {
@@ -336,12 +332,15 @@ const InterviewPanelistPortal = () => {
             </div>
             <div className="flex items-center space-x-6">
               <div className="text-right">
-                <span className="font-semibold text-gray-800 block">
-                  {localStorage.getItem('userEmail') || 'Dr. Smith Johnson'}
+              <span className="font-semibold text-gray-800 block">
+                  {localStorage.getItem('userName') || 'Dr. Smith Johnson'}
+                </span>
+                <span className="text-sm text-gray-600 block">
+                  {localStorage.getItem('userEmail') || 'smith.johnson@example.com'}
                 </span>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <User size={14} className="text-emerald-500" />
-                  <span>{localStorage.getItem('userRole') || 'Faculty'} - Computer Science</span>
+                  <span>{localStorage.getItem('userRole') || 'Faculty'} </span>
                 </div>
               </div>
               <button 
@@ -648,7 +647,7 @@ const InterviewPanelistPortal = () => {
         )}
 
         {activeTab === 'students' && (
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-emerald-100 p-8 relative overflow-hidden">
+          <div className="bg-white/90  rounded-2xl shadow-2xl border border-emerald-100 p-8 relative overflow-hidden">
             {/* Decorative elements for students card */}
             <div className="absolute top-0 left-0 w-40 h-40 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-full opacity-20 -translate-y-20 -translate-x-20"></div>
             <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-emerald-200 to-teal-100 rounded-full opacity-15 translate-y-16 translate-x-16"></div>
@@ -685,7 +684,7 @@ const InterviewPanelistPortal = () => {
                       {index + 1}
                     </div>
                     
-                    <div className="border-2 border-emerald-100 hover:border-emerald-300 rounded-2xl p-8 bg-white/80 backdrop-blur-sm transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] relative overflow-hidden">
+                    <div className="border-2 border-emerald-100 hover:border-emerald-300 rounded-2xl p-8 bg-white/80  transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] relative overflow-hidden">
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button, InputField } from "../../../components/common";
 import Sidebar from "../../../components/rolebasedcomponents/Sidebar";
 import Header from "../../../components/rolebasedcomponents/Header";
+import AddStudentModal from './StudentDetails/AddStudentModal';
 import {
   LayoutDashboard,
   Users,
@@ -90,6 +91,7 @@ const studentAPI = {
 
     return await response.json();
   },
+ 
 
   getIncompleteRegistrations: async () => {
     const response = await fetch(`${API_BASE}/students/incomplete`, {
@@ -443,10 +445,11 @@ const StudentManagement = () => {
   const [students, setStudents] = useState([]);
   const [statistics, setStatistics] = useState({});
   const [loading, setLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const getCurrentUser = () => {
     return {
-      name: localStorage.getItem("userName") || "HR Admin",
+      name: localStorage.getItem("userName") || "HR",
       email: localStorage.getItem("userEmail") || "hr@example.com"
     };
   };
@@ -518,6 +521,10 @@ const StudentManagement = () => {
     // Additional actions after successful upload
     console.log('Upload completed successfully');
   };
+  const handleManualAddSuccess = async (message) => {
+    showNotification(message, 'success');
+    await Promise.all([fetchStudents(), fetchStatistics()]);
+  };
 
   const handleRefresh = async () => {
     await Promise.all([fetchStudents(), fetchStatistics()]);
@@ -532,6 +539,7 @@ const StudentManagement = () => {
       </div>
     );
   }
+ 
 
   return (
     <div className="space-y-6">
@@ -554,6 +562,20 @@ const StudentManagement = () => {
           </button>
         </div>
       )}
+ {/* Header with Add Button */}
+ <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Student Management</h2>
+          <p className="text-gray-600 text-sm mt-1">Manage student accounts and registrations</p>
+        </div>
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium shadow-sm"
+        >
+          <Plus className="h-5 w-5" />
+          <span>Add Student</span>
+        </button>
+      </div>
 
       {/* Statistics Cards */}
       {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -595,6 +617,13 @@ const StudentManagement = () => {
         students={students}
         onRefresh={handleRefresh}
       />
+      
+<AddStudentModal
+  isOpen={isAddModalOpen}
+  onClose={() => setIsAddModalOpen(false)}
+  onSuccess={handleManualAddSuccess}
+  studentAPI={studentAPI}  // ✅ ADD THIS
+/>
     </div>
   );
 };
